@@ -1,7 +1,7 @@
 use crate::core::error::GlyphWeaveError;
 use crate::layout::common::{
-	apply_candidate, available_positions, candidate_quality, create_progress_bar, finish_progress,
-	pick_color, random_unit_f32, sample_candidate, total_area, update_progress,
+	apply_candidate, available_positions, create_progress_bar, finish_progress, pick_color,
+	random_unit_f32, sample_candidate, total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use rand::RngCore;
@@ -32,7 +32,6 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
 		let mut used_area = 0usize;
-		let mut current_score = 0.0f32;
 		let mut temperature = INITIAL_TEMPERATURE;
 		let progress = create_progress_bar(request.show_progress);
 
@@ -58,20 +57,18 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 				continue;
 			};
 
-			let candidate_score = candidate_quality(&candidate, total_usable_area);
-			let delta = candidate_score - current_score;
-			let accepted = if delta >= 0.0 {
-				true
+			let candidate_area = candidate.rect.area();
+			let normalized_quality = if total_usable_area == 0 {
+				0.0
 			} else {
-				let acceptance = (delta / temperature.max(1e-6)).exp();
-				random_unit_f32(rng) < acceptance
+				candidate_area as f32 / total_usable_area as f32
 			};
+			let accepted = accept_candidate(normalized_quality, temperature, rng);
 
 			if accepted {
 				let color = pick_color(&request.style.colors, rng);
 				let (placed, consumed) = apply_candidate(&mut mask, &candidate, color);
 				used_area += consumed;
-				current_score = candidate_score;
 				placements.push(placed);
 			}
 
@@ -89,5 +86,91 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 			attempts,
 			used_area,
 		})
+	}
+}
+
+/// Decide whether to accept a candidate placement under the SA schedule.
+///
+/// Plan A semantics: energy is the global solution's fill ratio, so accepting
+/// a candidate produces `ΔE = candidate_area / total_area ≥ 0`. Because every
+/// candidate is a non-negative improvement, plain Metropolis is degenerate
+/// (it would always accept). Instead we gate on candidate quality vs. the
+/// current temperature:
+///
+/// * auto-accept when `normalized_quality >= temperature` (the candidate is
+///   "big enough" relative to the current annealing stage);
+/// * otherwise probabilistic accept with probability `quality / T`,
+///   clamped to `[0, 1]`.
+///
+/// At high T (early) the bar is high → only large words slip through, keeping
+/// exploration coarse. As T cools the bar drops → smaller filler words start
+/// to be accepted, refining the layout. This realises the classic
+/// "coarse-first, fine-later" annealing pattern for area maximisation.
+fn accept_candidate(normalized_quality: f32, temperature: f32, rng: &mut dyn RngCore) -> bool {
+	if normalized_quality >= temperature {
+		return true;
+	}
+	let acceptance = (normalized_quality / temperature.max(1e-6)).clamp(0.0, 1.0);
+	random_unit_f32(rng) < acceptance
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use rand::SeedableRng;
+	use rand::rngs::StdRng;
+
+	#[test]
+	fn high_temperature_rejects_small_candidates_more_often_than_low_temperature() {
+		// At high T the gate is strict; at low T it relaxes. A small candidate
+		// (quality far below 1.0) should therefore see a higher acceptance rate
+		// at low T than at high T.
+		let small_quality = 0.01_f32;
+		let trials = 5_000;
+		let mut hot_rng = StdRng::seed_from_u64(0xC0FFEE);
+		let mut cold_rng = StdRng::seed_from_u64(0xC0FFEE);
+
+		let mut hot_accepts = 0usize;
+		let mut cold_accepts = 0usize;
+		for _ in 0..trials {
+			if accept_candidate(small_quality, 1.0, &mut hot_rng) {
+				hot_accepts += 1;
+			}
+			if accept_candidate(small_quality, 0.02, &mut cold_rng) {
+				cold_accepts += 1;
+			}
+		}
+		assert!(
+			cold_accepts > hot_accepts,
+			"expected cold acceptance ({cold_accepts}) to exceed hot acceptance ({hot_accepts}) for small quality"
+		);
+	}
+
+	#[test]
+	fn large_candidates_are_always_accepted() {
+		let mut rng = StdRng::seed_from_u64(7);
+		// quality strictly greater than temperature must auto-accept regardless of RNG.
+		for _ in 0..256 {
+			assert!(accept_candidate(0.5, 0.4, &mut rng));
+			assert!(accept_candidate(1.0, 1.0, &mut rng));
+		}
+	}
+
+	#[test]
+	fn zero_quality_at_high_temperature_never_accepts() {
+		// quality = 0 with T > 0 → acceptance probability = 0.
+		let mut rng = StdRng::seed_from_u64(42);
+		for _ in 0..256 {
+			assert!(!accept_candidate(0.0, 0.5, &mut rng));
+		}
+	}
+
+	#[test]
+	fn degenerate_temperature_does_not_panic() {
+		// Defensive: a near-zero temperature must not panic and must auto-accept
+		// any non-negative quality (since quality >= ~0 trivially).
+		let mut rng = StdRng::seed_from_u64(1);
+		assert!(accept_candidate(0.001, 0.0, &mut rng));
+		assert!(accept_candidate(0.0, 0.0, &mut rng));
 	}
 }
