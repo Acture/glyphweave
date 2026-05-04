@@ -6,8 +6,17 @@ use crate::layout::common::{
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use crate::mask::{calculate_text_size, mask_centroid};
 use rand::RngCore;
+use std::sync::{Arc, OnceLock};
 
 const SEARCH_RADIUS_LIMIT: usize = 220;
+
+static SPIRAL_OFFSETS: OnceLock<Arc<[(isize, isize)]>> = OnceLock::new();
+
+fn cached_spiral_offsets() -> &'static [(isize, isize)] {
+	SPIRAL_OFFSETS
+		.get_or_init(|| Arc::from(spiral_offsets(SEARCH_RADIUS_LIMIT)))
+		.as_ref()
+}
 
 pub struct SpiralGreedyStrategy;
 
@@ -26,7 +35,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 		}
 
 		let mut center = mask_centroid(&mask);
-		let offsets = spiral_offsets(SEARCH_RADIUS_LIMIT);
+		let offsets = cached_spiral_offsets();
 		let mut availability = IncrementalAvailability::new(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
@@ -47,6 +56,8 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 			let mut placed = None;
 			'font_search: for size in descending_font_sizes(request.style) {
 				for rotation in &request.style.rotations {
+					// calculate_text_size is hoisted out of the offset loop so it runs
+					// once per (size, rotation) instead of once per spiral cell.
 					let (w, h) = calculate_text_size(
 						&word_entry.text,
 						request.font,
@@ -54,7 +65,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 						request.style.padding,
 						*rotation,
 					);
-					for &(dy, dx) in &offsets {
+					for &(dy, dx) in offsets {
 						let x = center.0 as isize + dx;
 						let y = center.1 as isize + dy;
 
@@ -89,7 +100,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 					rotation,
 				));
 
-				center = (rect.x, rect.y);
+				center = (rect.x + rect.w / 2, rect.y + rect.h / 2);
 				if !mask[[
 					center.1.min(mask.nrows() - 1),
 					center.0.min(mask.ncols() - 1),
@@ -114,7 +125,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 }
 
 fn spiral_offsets(radius_limit: usize) -> Vec<(isize, isize)> {
-	let mut offsets = Vec::with_capacity(radius_limit * radius_limit);
+	let mut offsets = Vec::with_capacity((2 * radius_limit + 1).pow(2));
 	offsets.push((0, 0));
 
 	let mut x = 0isize;
