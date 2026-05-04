@@ -7,7 +7,7 @@ pub mod render;
 mod embedded_fonts;
 
 use crate::core::error::GlyphWeaveError;
-use crate::layout::{LayoutRequest, strategy_for};
+use crate::layout::{LayoutRequest, TextSizeCache, strategy_for};
 use crate::mask::{build_shape_mask, calculate_auto_font_size, save_mask_image, total_usable_area};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -63,6 +63,7 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 		ratio_threshold: request.ratio_threshold,
 		max_try_count: request.max_try_count,
 		show_progress: request.render.show_progress,
+		text_size_cache: TextSizeCache::new(),
 	};
 
 	let strategy = strategy_for(request.algorithm);

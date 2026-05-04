@@ -4,7 +4,7 @@ use crate::layout::common::{
 	occupy_area, pick_color, pick_weighted_word, placement, total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
-use crate::mask::{calculate_text_size, mask_centroid};
+use crate::mask::mask_centroid;
 use rand::RngCore;
 
 const SEARCH_RADIUS_LIMIT: usize = 220;
@@ -47,7 +47,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 			let mut placed = None;
 			'font_search: for size in descending_font_sizes(request.style) {
 				for rotation in &request.style.rotations {
-					let (w, h) = calculate_text_size(
+					let (w, h) = request.text_size_cache.size_of(
 						&word_entry.text,
 						request.font,
 						size,

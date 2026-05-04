@@ -48,7 +48,7 @@ impl WordEntry {
 	}
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Rotation {
 	Deg0,
 	Deg90,
