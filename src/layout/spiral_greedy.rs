@@ -1,6 +1,6 @@
 use crate::core::error::GlyphWeaveError;
 use crate::layout::common::{
-	Rect, create_progress_bar, descending_font_sizes, finish_progress, is_area_available,
+	IncrementalAvailability, Rect, create_progress_bar, descending_font_sizes, finish_progress,
 	occupy_area, pick_color, pick_weighted_word, placement, total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
@@ -27,6 +27,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 
 		let mut center = mask_centroid(&mask);
 		let offsets = spiral_offsets(SEARCH_RADIUS_LIMIT);
+		let mut availability = IncrementalAvailability::new(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
 		let mut used_area = 0usize;
@@ -68,7 +69,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 							h,
 						};
 
-						if is_area_available(&mask, rect) {
+						if availability.is_available(&mask, rect) {
 							placed = Some((size, *rotation, rect));
 							break 'font_search;
 						}
@@ -78,6 +79,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 
 			if let Some((font_size, rotation, rect)) = placed {
 				used_area += occupy_area(&mut mask, rect);
+				availability.commit_rect(&mask, rect);
 				let color = pick_color(&request.style.colors, rng);
 				placements.push(placement(
 					&word_entry.text,

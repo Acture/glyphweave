@@ -39,24 +39,102 @@ pub fn available_positions(mask: &Array2<bool>) -> Vec<(usize, usize)> {
 		.collect()
 }
 
-pub fn is_area_available(mask: &Array2<bool>, rect: Rect) -> bool {
-	if rect.w == 0 || rect.h == 0 {
-		return false;
+/// Maintains an integral image of the available mask plus a small log of
+/// recently committed rectangles, so rectangle-availability checks become
+/// O(1) amortized for every layout strategy.
+///
+/// ## Usage contract
+///
+/// 1. Build once per `mask` with [`IncrementalAvailability::new`].
+/// 2. Probe rectangles with [`IncrementalAvailability::is_available`] before
+///    placing them. The check considers both the underlying mask (via the
+///    integral image) and any rects already committed since the last rebuild.
+/// 3. After placing a rectangle, the caller MUST update the mask first
+///    (typically via [`occupy_area`]) and THEN call
+///    [`IncrementalAvailability::commit_rect`]. The pending list is what
+///    keeps subsequent O(1) queries correct in the window between rebuilds:
+///    the integral image still reports those cells as available until the
+///    next rebuild, so the pending overlap test compensates.
+/// 4. Once the pending list reaches `rebuild_interval` entries, the integral
+///    is rebuilt from the (already updated) mask and the pending list cleared.
+pub struct IncrementalAvailability {
+	integral: Array2<u32>,
+	pending_rects: Vec<Rect>,
+	rebuild_interval: usize,
+}
+
+impl IncrementalAvailability {
+	const DEFAULT_REBUILD_INTERVAL: usize = 64;
+
+	pub fn new(mask: &Array2<bool>) -> Self {
+		Self::with_interval(mask, Self::DEFAULT_REBUILD_INTERVAL)
 	}
 
-	if rect.x + rect.w > mask.ncols() || rect.y + rect.h > mask.nrows() {
-		return false;
-	}
-
-	for dy in 0..rect.h {
-		for dx in 0..rect.w {
-			if !mask[[rect.y + dy, rect.x + dx]] {
-				return false;
-			}
+	pub fn with_interval(mask: &Array2<bool>, rebuild_interval: usize) -> Self {
+		Self {
+			integral: build_integral(mask),
+			pending_rects: Vec::new(),
+			rebuild_interval: rebuild_interval.max(1),
 		}
 	}
 
-	true
+	/// O(1) availability check. Returns `true` iff every cell of `rect` is
+	/// inside the mask, currently free, and does not overlap any rectangle
+	/// committed since the last rebuild.
+	pub fn is_available(&self, mask: &Array2<bool>, rect: Rect) -> bool {
+		if rect.w == 0 || rect.h == 0 {
+			return false;
+		}
+		if rect.x + rect.w > mask.ncols() || rect.y + rect.h > mask.nrows() {
+			return false;
+		}
+		let area = rect.area() as u32;
+		if rect_sum(&self.integral, rect) != area {
+			return false;
+		}
+		!self
+			.pending_rects
+			.iter()
+			.any(|pending| intersects(*pending, rect))
+	}
+
+	/// Record a rectangle that has just been committed to `mask`. The caller
+	/// must already have cleared the cells of `rect` in `mask` (see
+	/// [`occupy_area`]). When the pending log fills up the integral image is
+	/// rebuilt from `mask` so subsequent queries stay O(1) without an
+	/// ever-growing overlap test.
+	pub fn commit_rect(&mut self, mask: &Array2<bool>, rect: Rect) {
+		self.pending_rects.push(rect);
+		if self.pending_rects.len() >= self.rebuild_interval {
+			self.integral = build_integral(mask);
+			self.pending_rects.clear();
+		}
+	}
+}
+
+fn build_integral(mask: &Array2<bool>) -> Array2<u32> {
+	let rows = mask.nrows();
+	let cols = mask.ncols();
+	let mut integral = Array2::<u32>::zeros((rows + 1, cols + 1));
+
+	for y in 0..rows {
+		for x in 0..cols {
+			let value = if mask[[y, x]] { 1 } else { 0 };
+			integral[[y + 1, x + 1]] =
+				value + integral[[y, x + 1]] + integral[[y + 1, x]] - integral[[y, x]];
+		}
+	}
+
+	integral
+}
+
+fn rect_sum(integral: &Array2<u32>, rect: Rect) -> u32 {
+	let x1 = rect.x;
+	let y1 = rect.y;
+	let x2 = rect.x + rect.w;
+	let y2 = rect.y + rect.h;
+
+	integral[[y2, x2]] + integral[[y1, x1]] - integral[[y1, x2]] - integral[[y2, x1]]
 }
 
 pub fn occupy_area(mask: &mut Array2<bool>, rect: Rect) -> usize {
@@ -126,6 +204,7 @@ pub fn descending_font_sizes(style: &StyleConfig) -> impl Iterator<Item = usize>
 }
 
 pub fn find_fit_at_position(
+	availability: &IncrementalAvailability,
 	mask: &Array2<bool>,
 	x: usize,
 	y: usize,
@@ -137,7 +216,7 @@ pub fn find_fit_at_position(
 		for rotation in &style.rotations {
 			let (w, h) = calculate_text_size(word, font, size, style.padding, *rotation);
 			let rect = Rect { x, y, w, h };
-			if is_area_available(mask, rect) {
+			if availability.is_available(mask, rect) {
 				return Some((size, *rotation, rect));
 			}
 		}
@@ -148,6 +227,7 @@ pub fn find_fit_at_position(
 
 pub fn sample_candidate(
 	mask: &Array2<bool>,
+	availability: &IncrementalAvailability,
 	positions: &mut Vec<(usize, usize)>,
 	request: &LayoutRequest<'_>,
 	rng: &mut dyn RngCore,
@@ -166,9 +246,15 @@ pub fn sample_candidate(
 		}
 
 		let word = pick_weighted_word(request.words, rng)?;
-		if let Some((font_size, rotation, rect)) =
-			find_fit_at_position(mask, x, y, &word.text, request.style, request.font)
-		{
+		if let Some((font_size, rotation, rect)) = find_fit_at_position(
+			availability,
+			mask,
+			x,
+			y,
+			&word.text,
+			request.style,
+			request.font,
+		) {
 			return Some(PlacementCandidate {
 				word: word.text.clone(),
 				word_weight: word.weight.max(0.0),
