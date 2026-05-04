@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FileConfig {
 	pub canvas_size: Option<[usize; 2]>,
 	pub canvas_margin: Option<usize>,
@@ -154,4 +155,36 @@ fn user_config_path() -> Option<PathBuf> {
 	path.push("glyphweave");
 	path.push("config.toml");
 	Some(path)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn unknown_field_in_config_is_rejected() {
+		let toml_text = r#"
+canvas_size = [800, 600]
+canva_size = [800, 600]
+"#;
+		let result: Result<FileConfig, _> = toml::from_str(toml_text);
+		assert!(result.is_err(), "expected unknown_field rejection");
+		let msg = format!("{}", result.unwrap_err());
+		assert!(
+			msg.contains("canva_size") || msg.contains("unknown"),
+			"error should mention the unknown field, got: {msg}"
+		);
+	}
+
+	#[test]
+	fn known_fields_still_parse() {
+		let toml_text = r#"
+canvas_size = [1600, 900]
+algorithm = "fast-grid"
+ratio = 0.85
+"#;
+		let cfg: FileConfig = toml::from_str(toml_text).expect("known fields should parse");
+		assert_eq!(cfg.canvas_size, Some([1600, 900]));
+		assert_eq!(cfg.algorithm.as_deref(), Some("fast-grid"));
+	}
 }
