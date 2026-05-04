@@ -31,6 +31,14 @@ Controls typography hierarchy.
 - wider range creates stronger contrast
 - very large upper bound may reduce fit success near boundaries
 
+### `--word-padding`
+
+Pixels of padding added around each placed word's bounding box.
+
+- default `0` packs words tightly (best for fill ratio, can look dense)
+- `1`–`3` improves visual separation in dense clouds at the cost of fewer placements
+- equivalent TOML field: `word_padding`
+
 ### `--rotations`
 
 `0` or `0,90`.

@@ -9,6 +9,7 @@ pub struct FileConfig {
 	pub canvas_size: Option<[usize; 2]>,
 	pub canvas_margin: Option<usize>,
 	pub word_size_range: Option<[usize; 2]>,
+	pub word_padding: Option<usize>,
 	pub colors: Option<Vec<String>>,
 	pub rotations: Option<Vec<u16>>,
 	pub text_size: Option<String>,
@@ -33,6 +34,9 @@ impl FileConfig {
 		}
 		if other.word_size_range.is_some() {
 			self.word_size_range = other.word_size_range;
+		}
+		if other.word_padding.is_some() {
+			self.word_padding = other.word_padding;
 		}
 		if other.colors.is_some() {
 			self.colors = other.colors;
