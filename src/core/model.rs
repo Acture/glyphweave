@@ -63,6 +63,12 @@ impl Rotation {
 	}
 }
 
+impl serde::Serialize for Rotation {
+	fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+		s.serialize_u16(self.degrees())
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct StyleConfig {
 	pub font_size_range: RangeInclusive<usize>,
@@ -191,7 +197,7 @@ impl CloudRequest {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CloudPlacement {
 	pub word: String,
 	pub x: usize,
@@ -201,7 +207,7 @@ pub struct CloudPlacement {
 	pub rotation: Rotation,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CloudStats {
 	pub seed: u64,
 	pub shape_font_size: usize,
@@ -213,7 +219,7 @@ pub struct CloudStats {
 	pub elapsed_ms: u128,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CloudResult {
 	pub svg: String,
 	pub placements: Vec<CloudPlacement>,
