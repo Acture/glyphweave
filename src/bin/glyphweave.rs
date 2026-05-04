@@ -182,6 +182,15 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 		output_path.display()
 	);
 
+	eprintln!(
+		"glyphweave: placed {} words, fill {:.1}%, seed={}, elapsed {}ms -> {}",
+		result.stats.placed_words,
+		result.stats.fill_ratio * 100.0,
+		result.stats.seed,
+		result.stats.elapsed_ms,
+		output_path.display()
+	);
+
 	Ok(())
 }
 
