@@ -68,6 +68,9 @@ jobs:
       - name: Run tests
         run: cargo test --lib --bins --tests
 
+      - name: Run tests with embedded fonts
+        run: cargo test --features embedded_fonts --lib --bins --tests
+
   prepare-release:
     name: Prepare GitHub Release
     needs: verify
