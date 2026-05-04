@@ -198,7 +198,10 @@ pub fn collect_words(args: &CliArgs) -> Result<Vec<WordEntry>, GlyphWeaveError> 
 }
 
 pub fn parse_word_file(path: &Path) -> Result<Vec<(String, f32)>, GlyphWeaveError> {
-	let content = std::fs::read_to_string(path)?;
+	let content = std::fs::read_to_string(path).map_err(|source| GlyphWeaveError::Io {
+		path: path.to_path_buf(),
+		source,
+	})?;
 	let mut out = Vec::new();
 
 	for (index, raw_line) in content.lines().enumerate() {

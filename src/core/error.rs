@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -8,11 +9,19 @@ pub enum GlyphWeaveError {
 	#[error("font loading failed: {0}")]
 	FontLoad(String),
 
-	#[error("I/O error: {0}")]
-	Io(#[from] std::io::Error),
+	#[error("I/O error reading {path}: {source}", path = path.display())]
+	Io {
+		path: PathBuf,
+		#[source]
+		source: std::io::Error,
+	},
 
-	#[error("image error: {0}")]
-	Image(#[from] image::ImageError),
+	#[error("image error writing {path}: {source}", path = path.display())]
+	Image {
+		path: PathBuf,
+		#[source]
+		source: image::ImageError,
+	},
 
 	#[error("generation failed: {0}")]
 	Generation(String),

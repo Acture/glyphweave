@@ -144,7 +144,10 @@ pub fn mask_to_image(mask: &Array2<bool>) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
 
 pub fn save_mask_image(mask: &Array2<bool>, path: &Path) -> Result<(), GlyphWeaveError> {
 	let image = mask_to_image(mask);
-	image.save(path)?;
+	image.save(path).map_err(|source| GlyphWeaveError::Image {
+		path: path.to_path_buf(),
+		source,
+	})?;
 	Ok(())
 }
 

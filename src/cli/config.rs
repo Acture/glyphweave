@@ -187,4 +187,15 @@ ratio = 0.85
 		assert_eq!(cfg.canvas_size, Some([1600, 900]));
 		assert_eq!(cfg.algorithm.as_deref(), Some("fast-grid"));
 	}
+
+	#[test]
+	fn io_error_includes_path_in_message() {
+		let nonexistent = PathBuf::from("/tmp/glyphweave-f8-does-not-exist-1234567890.toml");
+		let err = load_merged_config(Some(&nonexistent)).unwrap_err();
+		let msg = format!("{err}");
+		assert!(
+			msg.contains("does-not-exist"),
+			"message should include path, got: {msg}"
+		);
+	}
 }
