@@ -54,3 +54,11 @@ Build with `--features embedded_fonts` if you want to call `load_default_embedde
 ## Determinism
 
 Set `seed` to a fixed value to make layout output reproducible for snapshots and regression tests.
+
+## Serde Support
+
+`CloudResult`, `CloudPlacement`, `CloudStats`, and `Rotation` implement
+`serde::Serialize`. Use any serde-compatible serializer (e.g. `serde_json`)
+to export placements for downstream consumption (D3, web frontends, etc.).
+
+`Rotation` serializes as a numeric value (`0` or `90`) rather than a string.
