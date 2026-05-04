@@ -65,6 +65,7 @@ impl LayoutStrategy for FastGridStrategy {
 					&word_entry.text,
 					request.style,
 					request.font,
+					&request.text_size_cache,
 				) {
 					used_area += occupy_area(&mut mask, rect);
 					availability.commit_rect(&mask, rect);

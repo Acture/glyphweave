@@ -1,6 +1,6 @@
 use crate::core::model::{CloudPlacement, Rotation, StyleConfig, WordEntry};
 use crate::layout::LayoutRequest;
-use crate::mask::calculate_text_size;
+use crate::layout::text_cache::TextSizeCache;
 use fontdue::Font;
 use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::Array2;
@@ -203,6 +203,7 @@ pub fn descending_font_sizes(style: &StyleConfig) -> impl Iterator<Item = usize>
 	(*style.font_size_range.start()..=*style.font_size_range.end()).rev()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn find_fit_at_position(
 	availability: &IncrementalAvailability,
 	mask: &Array2<bool>,
@@ -211,10 +212,11 @@ pub fn find_fit_at_position(
 	word: &str,
 	style: &StyleConfig,
 	font: &Font,
+	cache: &TextSizeCache,
 ) -> Option<(usize, Rotation, Rect)> {
 	for size in descending_font_sizes(style) {
 		for rotation in &style.rotations {
-			let (w, h) = calculate_text_size(word, font, size, style.padding, *rotation);
+			let (w, h) = cache.size_of(word, font, size, style.padding, *rotation);
 			let rect = Rect { x, y, w, h };
 			if availability.is_available(mask, rect) {
 				return Some((size, *rotation, rect));
@@ -254,6 +256,7 @@ pub fn sample_candidate(
 			&word.text,
 			request.style,
 			request.font,
+			&request.text_size_cache,
 		) {
 			return Some(PlacementCandidate {
 				word: word.text.clone(),

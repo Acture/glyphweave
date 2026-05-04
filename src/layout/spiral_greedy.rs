@@ -4,7 +4,7 @@ use crate::layout::common::{
 	occupy_area, pick_color, pick_weighted_word, placement, total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
-use crate::mask::{calculate_text_size, mask_centroid};
+use crate::mask::mask_centroid;
 use rand::RngCore;
 use std::sync::{Arc, OnceLock};
 
@@ -58,7 +58,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 				for rotation in &request.style.rotations {
 					// calculate_text_size is hoisted out of the offset loop so it runs
 					// once per (size, rotation) instead of once per spiral cell.
-					let (w, h) = calculate_text_size(
+					let (w, h) = request.text_size_cache.size_of(
 						&word_entry.text,
 						request.font,
 						size,

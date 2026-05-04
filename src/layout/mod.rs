@@ -4,6 +4,7 @@ mod mcts;
 mod random_baseline;
 mod simulated_annealing;
 mod spiral_greedy;
+mod text_cache;
 
 use crate::core::error::GlyphWeaveError;
 use crate::core::model::{AlgorithmKind, CloudPlacement, StyleConfig, WordEntry};
@@ -16,6 +17,7 @@ pub use mcts::MctsStrategy;
 pub use random_baseline::RandomBaselineStrategy;
 pub use simulated_annealing::SimulatedAnnealingStrategy;
 pub use spiral_greedy::SpiralGreedyStrategy;
+pub use text_cache::TextSizeCache;
 
 #[derive(Debug)]
 pub struct LayoutRequest<'a> {
@@ -26,6 +28,7 @@ pub struct LayoutRequest<'a> {
 	pub ratio_threshold: f32,
 	pub max_try_count: usize,
 	pub show_progress: bool,
+	pub text_size_cache: TextSizeCache,
 }
 
 #[derive(Debug)]
