@@ -23,6 +23,7 @@ use std::sync::Arc;
 const DEFAULT_CANVAS_SIZE: (usize, usize) = (1920, 1080);
 const DEFAULT_CANVAS_MARGIN: usize = 10;
 const DEFAULT_WORD_SIZE_RANGE: (usize, usize) = (10, 30);
+const DEFAULT_WORD_PADDING: usize = 0;
 const DEFAULT_RATIO: f32 = 0.9;
 const DEFAULT_MAX_TRIES: usize = 10_000;
 const DEFAULT_PALETTE_BASE: &str = "#3B82F6";
@@ -58,6 +59,10 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 		.word_size_range
 		.or_else(|| config.word_size_tuple())
 		.unwrap_or(DEFAULT_WORD_SIZE_RANGE);
+	let word_padding = args
+		.word_padding
+		.or(config.word_padding)
+		.unwrap_or(DEFAULT_WORD_PADDING);
 	let rotations = args
 		.rotations
 		.clone()
@@ -155,7 +160,7 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 		words,
 		style: StyleConfig {
 			font_size_range: word_size_range.0..=word_size_range.1,
-			padding: 0,
+			padding: word_padding,
 			colors,
 			rotations: rotations_from_degrees(&rotations)?,
 		},

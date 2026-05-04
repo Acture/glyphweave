@@ -28,6 +28,12 @@ pub struct CliArgs {
 	#[arg(long = "word-size-range", value_parser = parse_tuple)]
 	pub word_size_range: Option<(usize, usize)>,
 
+	#[arg(
+		long = "word-padding",
+		help = "Pixels of padding around each placed word (default 0)"
+	)]
+	pub word_padding: Option<usize>,
+
 	#[arg(long = "colors", value_delimiter = ',')]
 	pub word_colors: Option<Vec<String>>,
 
