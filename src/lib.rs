@@ -71,6 +71,7 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 	let svg = render::render_svg(
 		&request.canvas,
 		&layout_result.placements,
+		request.font.as_ref(),
 		&font::font_family_name(request.font.as_ref()),
 	);
 
