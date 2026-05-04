@@ -35,6 +35,7 @@ pub struct LayoutRequest<'a> {
 pub struct LayoutResult {
 	pub placements: Vec<CloudPlacement>,
 	pub attempts: usize,
+	pub internal_evaluations: usize,
 	pub used_area: usize,
 }
 

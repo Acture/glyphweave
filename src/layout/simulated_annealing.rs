@@ -32,6 +32,7 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
+		let mut internal_evaluations = 0usize;
 		let mut used_area = 0usize;
 		let mut temperature = INITIAL_TEMPERATURE;
 		let progress = create_progress_bar(request.show_progress);
@@ -58,6 +59,7 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 				request,
 				rng,
 				CANDIDATE_TRIALS,
+				&mut internal_evaluations,
 			) else {
 				temperature = (temperature * COOLING_RATE).max(MIN_TEMPERATURE);
 				continue;
@@ -91,6 +93,7 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 		Ok(LayoutResult {
 			placements,
 			attempts,
+			internal_evaluations,
 			used_area,
 		})
 	}

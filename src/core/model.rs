@@ -215,6 +215,7 @@ pub struct CloudStats {
 	pub used_area: usize,
 	pub fill_ratio: f32,
 	pub attempts: usize,
+	pub internal_evaluations: usize,
 	pub placed_words: usize,
 	pub elapsed_ms: u128,
 }

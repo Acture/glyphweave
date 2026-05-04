@@ -213,11 +213,13 @@ pub fn find_fit_at_position(
 	style: &StyleConfig,
 	font: &Font,
 	cache: &TextSizeCache,
+	evaluations: &mut usize,
 ) -> Option<(usize, Rotation, Rect)> {
 	for size in descending_font_sizes(style) {
 		for rotation in &style.rotations {
 			let (w, h) = cache.size_of(word, font, size, style.padding, *rotation);
 			let rect = Rect { x, y, w, h };
+			*evaluations += 1;
 			if availability.is_available(mask, rect) {
 				return Some((size, *rotation, rect));
 			}
@@ -227,6 +229,7 @@ pub fn find_fit_at_position(
 	None
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn sample_candidate(
 	mask: &Array2<bool>,
 	availability: &IncrementalAvailability,
@@ -234,6 +237,7 @@ pub fn sample_candidate(
 	request: &LayoutRequest<'_>,
 	rng: &mut dyn RngCore,
 	max_trials: usize,
+	evaluations: &mut usize,
 ) -> Option<PlacementCandidate> {
 	for _ in 0..max_trials {
 		if positions.is_empty() {
@@ -257,6 +261,7 @@ pub fn sample_candidate(
 			request.style,
 			request.font,
 			&request.text_size_cache,
+			evaluations,
 		) {
 			return Some(PlacementCandidate {
 				word: word.text.clone(),
