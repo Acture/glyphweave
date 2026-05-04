@@ -172,7 +172,10 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 
 	let output_path = args.output;
 	let result = generate(request)?;
-	std::fs::write(&output_path, result.svg)?;
+	std::fs::write(&output_path, result.svg).map_err(|source| GlyphWeaveError::Io {
+		path: output_path.clone(),
+		source,
+	})?;
 
 	info!(
 		"Generated {} words, fill ratio {:.2}% (seed={}) -> {}",
@@ -189,7 +192,7 @@ fn map_error_to_exit_code(error: &GlyphWeaveError) -> u8 {
 	match error {
 		GlyphWeaveError::InvalidConfig(_) => 2,
 		GlyphWeaveError::FontLoad(_) => 3,
-		GlyphWeaveError::Io(_) | GlyphWeaveError::Image(_) => 4,
+		GlyphWeaveError::Io { .. } | GlyphWeaveError::Image { .. } => 4,
 		GlyphWeaveError::Generation(_) => 5,
 	}
 }

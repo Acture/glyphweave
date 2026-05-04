@@ -155,3 +155,19 @@ fn user_config_path() -> Option<PathBuf> {
 	path.push("config.toml");
 	Some(path)
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn io_error_includes_path_in_message() {
+		let nonexistent = PathBuf::from("/tmp/glyphweave-f8-does-not-exist-1234567890.toml");
+		let err = load_merged_config(Some(&nonexistent)).unwrap_err();
+		let msg = format!("{err}");
+		assert!(
+			msg.contains("does-not-exist"),
+			"message should include path, got: {msg}"
+		);
+	}
+}
