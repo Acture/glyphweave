@@ -30,6 +30,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 		let mut availability = IncrementalAvailability::new(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
+		let mut internal_evaluations = 0usize;
 		let mut used_area = 0usize;
 		let progress = create_progress_bar(request.show_progress);
 
@@ -69,6 +70,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 							h,
 						};
 
+						internal_evaluations += 1;
 						if availability.is_available(&mask, rect) {
 							placed = Some((size, *rotation, rect));
 							break 'font_search;
@@ -108,6 +110,7 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 		Ok(LayoutResult {
 			placements,
 			attempts,
+			internal_evaluations,
 			used_area,
 		})
 	}

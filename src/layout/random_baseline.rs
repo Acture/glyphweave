@@ -31,6 +31,7 @@ impl LayoutStrategy for RandomBaselineStrategy {
 		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
+		let mut internal_evaluations = 0usize;
 		let mut used_area = 0usize;
 		let progress = create_progress_bar(request.show_progress);
 
@@ -68,6 +69,7 @@ impl LayoutStrategy for RandomBaselineStrategy {
 				&word_entry.text,
 				request.style,
 				request.font,
+				&mut internal_evaluations,
 			) {
 				used_area += occupy_area(&mut mask, rect);
 				availability.commit_rect(&mask, rect);
@@ -95,6 +97,7 @@ impl LayoutStrategy for RandomBaselineStrategy {
 		Ok(LayoutResult {
 			placements,
 			attempts,
+			internal_evaluations,
 			used_area,
 		})
 	}

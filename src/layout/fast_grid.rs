@@ -30,6 +30,7 @@ impl LayoutStrategy for FastGridStrategy {
 		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
+		let mut internal_evaluations = 0usize;
 		let mut used_area = 0usize;
 		let progress = create_progress_bar(request.show_progress);
 
@@ -65,6 +66,7 @@ impl LayoutStrategy for FastGridStrategy {
 					&word_entry.text,
 					request.style,
 					request.font,
+					&mut internal_evaluations,
 				) {
 					used_area += occupy_area(&mut mask, rect);
 					availability.commit_rect(&mask, rect);
@@ -95,6 +97,7 @@ impl LayoutStrategy for FastGridStrategy {
 		Ok(LayoutResult {
 			placements,
 			attempts,
+			internal_evaluations,
 			used_area,
 		})
 	}

@@ -43,6 +43,7 @@ impl LayoutStrategy for MctsStrategy {
 		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
+		let mut internal_evaluations = 0usize;
 		let mut used_area = 0usize;
 		let progress = create_progress_bar(request.show_progress);
 
@@ -61,7 +62,14 @@ impl LayoutStrategy for MctsStrategy {
 				break;
 			}
 
-			let mut children = sample_children(&mask, &availability, &mut positions, request, rng);
+			let mut children = sample_children(
+				&mask,
+				&availability,
+				&mut positions,
+				request,
+				rng,
+				&mut internal_evaluations,
+			);
 			if children.is_empty() {
 				continue;
 			}
@@ -74,6 +82,7 @@ impl LayoutStrategy for MctsStrategy {
 					request,
 					total_usable_area,
 					rng,
+					&mut internal_evaluations,
 				);
 				let node = &mut children[selected];
 				node.visits += 1;
@@ -98,6 +107,7 @@ impl LayoutStrategy for MctsStrategy {
 		Ok(LayoutResult {
 			placements,
 			attempts,
+			internal_evaluations,
 			used_area,
 		})
 	}
@@ -109,6 +119,7 @@ fn sample_children(
 	positions: &mut Vec<(usize, usize)>,
 	request: &LayoutRequest<'_>,
 	rng: &mut dyn RngCore,
+	evaluations: &mut usize,
 ) -> Vec<ChildNode> {
 	let mut children = Vec::new();
 
@@ -120,6 +131,7 @@ fn sample_children(
 			request,
 			rng,
 			CANDIDATE_TRIALS,
+			evaluations,
 		) {
 			children.push(ChildNode {
 				candidate,
@@ -184,6 +196,7 @@ fn rollout_reward(
 	request: &LayoutRequest<'_>,
 	total_usable_area: usize,
 	rng: &mut dyn RngCore,
+	evaluations: &mut usize,
 ) -> f32 {
 	let mut local_mask = mask.clone();
 	let mut reward = 0.0f32;
@@ -208,6 +221,7 @@ fn rollout_reward(
 			request,
 			rng,
 			ROLLOUT_CANDIDATE_TRIALS,
+			evaluations,
 		) else {
 			break;
 		};
