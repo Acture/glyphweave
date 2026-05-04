@@ -1,10 +1,13 @@
 use crate::core::error::GlyphWeaveError;
 use crate::layout::common::{
-	available_positions, create_progress_bar, find_fit_at_position, finish_progress, occupy_area,
-	pick_color, pick_weighted_word, placement, random_index, total_area, update_progress,
+	IncrementalAvailability, available_positions, create_progress_bar, find_fit_at_position,
+	finish_progress, occupy_area, pick_color, pick_weighted_word, placement, random_index,
+	total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use rand::RngCore;
+
+const POOL_REFILL_THRESHOLD: usize = 256;
 
 pub struct RandomBaselineStrategy;
 
@@ -22,6 +25,10 @@ impl LayoutStrategy for RandomBaselineStrategy {
 			));
 		}
 
+		let mut availability = IncrementalAvailability::new(&mask);
+		// Issue-3: build the position pool once and prune via swap_remove
+		// instead of rebuilding the entire pool every iteration (O(W*H)/iter).
+		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
 		let mut used_area = 0usize;
@@ -35,20 +42,35 @@ impl LayoutStrategy for RandomBaselineStrategy {
 
 			attempts += 1;
 
-			let positions = available_positions(&mask);
 			if positions.is_empty() {
 				break;
 			}
 
-			let (y, x) = positions[random_index(rng, positions.len())];
+			let idx = random_index(rng, positions.len());
+			let (y, x) = positions[idx];
+			if !mask[[y, x]] {
+				positions.swap_remove(idx);
+				if positions.len() < POOL_REFILL_THRESHOLD {
+					positions = available_positions(&mask);
+				}
+				continue;
+			}
+
 			let Some(word_entry) = pick_weighted_word(request.words, rng) else {
 				break;
 			};
 
-			if let Some((font_size, rotation, rect)) =
-				find_fit_at_position(&mask, x, y, &word_entry.text, request.style, request.font)
-			{
+			if let Some((font_size, rotation, rect)) = find_fit_at_position(
+				&availability,
+				&mask,
+				x,
+				y,
+				&word_entry.text,
+				request.style,
+				request.font,
+			) {
 				used_area += occupy_area(&mut mask, rect);
+				availability.commit_rect(&mask, rect);
 				let color = pick_color(&request.style.colors, rng);
 				placements.push(placement(
 					&word_entry.text,
@@ -57,6 +79,10 @@ impl LayoutStrategy for RandomBaselineStrategy {
 					color,
 					rotation,
 				));
+
+				if positions.len() < POOL_REFILL_THRESHOLD {
+					positions = available_positions(&mask);
+				}
 			}
 
 			let ratio_progress = (used_area * 100) / total_usable_area;

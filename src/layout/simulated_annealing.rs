@@ -1,7 +1,7 @@
 use crate::core::error::GlyphWeaveError;
 use crate::layout::common::{
-	apply_candidate, available_positions, create_progress_bar, finish_progress, pick_color,
-	random_unit_f32, sample_candidate, total_area, update_progress,
+	IncrementalAvailability, apply_candidate, available_positions, create_progress_bar,
+	finish_progress, pick_color, random_unit_f32, sample_candidate, total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use rand::RngCore;
@@ -28,6 +28,7 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 			));
 		}
 
+		let mut availability = IncrementalAvailability::new(&mask);
 		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
@@ -50,9 +51,14 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 				break;
 			}
 
-			let Some(candidate) =
-				sample_candidate(&mask, &mut positions, request, rng, CANDIDATE_TRIALS)
-			else {
+			let Some(candidate) = sample_candidate(
+				&mask,
+				&availability,
+				&mut positions,
+				request,
+				rng,
+				CANDIDATE_TRIALS,
+			) else {
 				temperature = (temperature * COOLING_RATE).max(MIN_TEMPERATURE);
 				continue;
 			};
@@ -68,6 +74,7 @@ impl LayoutStrategy for SimulatedAnnealingStrategy {
 			if accepted {
 				let color = pick_color(&request.style.colors, rng);
 				let (placed, consumed) = apply_candidate(&mut mask, &candidate, color);
+				availability.commit_rect(&mask, candidate.rect);
 				used_area += consumed;
 				placements.push(placed);
 			}

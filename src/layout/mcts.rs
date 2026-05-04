@@ -1,8 +1,8 @@
 use crate::core::error::GlyphWeaveError;
 use crate::layout::common::{
-	PlacementCandidate, apply_candidate, available_positions, candidate_quality,
-	create_progress_bar, finish_progress, pick_color, sample_candidate, total_area,
-	update_progress,
+	IncrementalAvailability, PlacementCandidate, apply_candidate, available_positions,
+	candidate_quality, create_progress_bar, finish_progress, pick_color, sample_candidate,
+	total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use ndarray::Array2;
@@ -39,6 +39,7 @@ impl LayoutStrategy for MctsStrategy {
 			));
 		}
 
+		let mut availability = IncrementalAvailability::new(&mask);
 		let mut positions = available_positions(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
@@ -60,7 +61,7 @@ impl LayoutStrategy for MctsStrategy {
 				break;
 			}
 
-			let mut children = sample_children(&mask, &mut positions, request, rng);
+			let mut children = sample_children(&mask, &availability, &mut positions, request, rng);
 			if children.is_empty() {
 				continue;
 			}
@@ -83,6 +84,7 @@ impl LayoutStrategy for MctsStrategy {
 			let best_candidate = children.swap_remove(best).candidate;
 			let color = pick_color(&request.style.colors, rng);
 			let (placed, consumed) = apply_candidate(&mut mask, &best_candidate, color);
+			availability.commit_rect(&mask, best_candidate.rect);
 			used_area += consumed;
 			placements.push(placed);
 
@@ -103,6 +105,7 @@ impl LayoutStrategy for MctsStrategy {
 
 fn sample_children(
 	mask: &Array2<bool>,
+	availability: &IncrementalAvailability,
 	positions: &mut Vec<(usize, usize)>,
 	request: &LayoutRequest<'_>,
 	rng: &mut dyn RngCore,
@@ -110,7 +113,14 @@ fn sample_children(
 	let mut children = Vec::new();
 
 	for _ in 0..CHILDREN_PER_STEP {
-		if let Some(candidate) = sample_candidate(mask, positions, request, rng, CANDIDATE_TRIALS) {
+		if let Some(candidate) = sample_candidate(
+			mask,
+			availability,
+			positions,
+			request,
+			rng,
+			CANDIDATE_TRIALS,
+		) {
 			children.push(ChildNode {
 				candidate,
 				visits: 0,
@@ -179,6 +189,9 @@ fn rollout_reward(
 	let mut reward = 0.0f32;
 
 	let first_consumed = crate::layout::common::occupy_area(&mut local_mask, first.rect);
+	// Rollout uses its own availability; it rebuilds the integral once per
+	// rollout (P7 will replace the rollout entirely with a cheaper estimator).
+	let mut local_availability = IncrementalAvailability::new(&local_mask);
 	reward += first_consumed as f32 / total_usable_area as f32;
 	reward += candidate_quality(first, total_usable_area);
 
@@ -190,6 +203,7 @@ fn rollout_reward(
 
 		let Some(candidate) = sample_candidate(
 			&local_mask,
+			&local_availability,
 			&mut positions,
 			request,
 			rng,
@@ -199,6 +213,7 @@ fn rollout_reward(
 		};
 
 		let consumed = crate::layout::common::occupy_area(&mut local_mask, candidate.rect);
+		local_availability.commit_rect(&local_mask, candidate.rect);
 		reward += consumed as f32 / total_usable_area as f32;
 	}
 
