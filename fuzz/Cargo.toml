@@ -1,0 +1,22 @@
+[package]
+name = "glyphweave-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+fontdue = "0.9"
+
+[dependencies.glyphweave]
+path = ".."
+
+[[bin]]
+name = "image_mask"
+path = "fuzz_targets/image_mask.rs"
+test = false
+doc = false
+bench = false
