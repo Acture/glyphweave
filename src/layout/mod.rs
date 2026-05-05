@@ -1,3 +1,4 @@
+mod bitmask;
 mod common;
 mod fast_grid;
 mod mcts;
@@ -9,9 +10,9 @@ mod text_cache;
 use crate::core::error::GlyphWeaveError;
 use crate::core::model::{AlgorithmKind, CloudPlacement, StyleConfig, WordEntry};
 use fontdue::Font;
-use ndarray::Array2;
 use rand::RngCore;
 
+pub use bitmask::BitMask;
 pub use fast_grid::FastGridStrategy;
 pub use mcts::MctsStrategy;
 pub use random_baseline::RandomBaselineStrategy;
@@ -21,7 +22,7 @@ pub use text_cache::TextSizeCache;
 
 #[derive(Debug)]
 pub struct LayoutRequest<'a> {
-	pub mask: &'a Array2<bool>,
+	pub mask: &'a BitMask,
 	pub words: &'a [WordEntry],
 	pub style: &'a StyleConfig,
 	pub font: &'a Font,

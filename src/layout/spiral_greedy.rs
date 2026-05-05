@@ -103,10 +103,10 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 				));
 
 				center = (rect.x + rect.w / 2, rect.y + rect.h / 2);
-				if !mask[[
+				if !mask.get(
 					center.1.min(mask.nrows() - 1),
 					center.0.min(mask.ncols() - 1),
-				]] {
+				) {
 					center = mask_centroid(&mask);
 				}
 			}

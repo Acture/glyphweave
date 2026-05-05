@@ -1,11 +1,11 @@
 use crate::core::error::GlyphWeaveError;
+use crate::layout::BitMask;
 use crate::layout::common::{
 	IncrementalAvailability, PlacementCandidate, apply_candidate, available_positions,
 	candidate_quality, create_progress_bar, finish_progress, pick_color, sample_candidate,
 	total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
-use ndarray::Array2;
 use rand::RngCore;
 
 const CANDIDATE_TRIALS: usize = 64;
@@ -114,7 +114,7 @@ impl LayoutStrategy for MctsStrategy {
 }
 
 fn sample_children(
-	mask: &Array2<bool>,
+	mask: &BitMask,
 	availability: &IncrementalAvailability,
 	positions: &mut Vec<(usize, usize)>,
 	request: &LayoutRequest<'_>,
@@ -191,7 +191,7 @@ fn best_child_index(children: &[ChildNode]) -> usize {
 }
 
 fn rollout_reward(
-	mask: &Array2<bool>,
+	mask: &BitMask,
 	first: &PlacementCandidate,
 	request: &LayoutRequest<'_>,
 	total_usable_area: usize,

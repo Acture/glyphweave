@@ -1,8 +1,8 @@
 use crate::core::error::GlyphWeaveError;
 use crate::core::model::{CanvasConfig, Rotation};
+use crate::layout::BitMask;
 use fontdue::Font;
 use image::{ImageBuffer, Rgba};
-use ndarray::Array2;
 use std::path::Path;
 
 pub fn calculate_text_size(
@@ -55,8 +55,8 @@ pub fn build_shape_mask(
 	text: &str,
 	font: &Font,
 	font_size: usize,
-) -> Array2<bool> {
-	let mut mask = Array2::from_elem((canvas.height, canvas.width), false);
+) -> BitMask {
+	let mut mask = BitMask::zeros(canvas.height, canvas.width);
 
 	let metrics: Vec<_> = text
 		.chars()
@@ -90,7 +90,7 @@ pub fn build_shape_mask(
 					let px = cursor_x + x;
 					let py = offset_y + y;
 					if px < canvas.width && py < canvas.height {
-						mask[[py, px]] = true;
+						mask.set(py, px, true);
 					}
 				}
 			}
@@ -102,21 +102,19 @@ pub fn build_shape_mask(
 	mask
 }
 
-pub fn total_usable_area(mask: &Array2<bool>) -> usize {
-	mask.iter().filter(|&&value| value).count()
+pub fn total_usable_area(mask: &BitMask) -> usize {
+	mask.count_ones()
 }
 
-pub fn mask_centroid(mask: &Array2<bool>) -> (usize, usize) {
+pub fn mask_centroid(mask: &BitMask) -> (usize, usize) {
 	let mut sum_x = 0usize;
 	let mut sum_y = 0usize;
 	let mut count = 0usize;
 
-	for ((y, x), value) in mask.indexed_iter() {
-		if *value {
-			sum_x += x;
-			sum_y += y;
-			count += 1;
-		}
+	for (y, x) in mask.indexed_set() {
+		sum_x += x;
+		sum_y += y;
+		count += 1;
 	}
 
 	if count == 0 {
@@ -126,23 +124,26 @@ pub fn mask_centroid(mask: &Array2<bool>) -> (usize, usize) {
 	(sum_x / count, sum_y / count)
 }
 
-pub fn mask_to_image(mask: &Array2<bool>) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-	let (height, width) = mask.dim();
+pub fn mask_to_image(mask: &BitMask) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+	let height = mask.nrows();
+	let width = mask.ncols();
 	let mut image = ImageBuffer::new(width as u32, height as u32);
 
-	for ((y, x), occupied) in mask.indexed_iter() {
-		let pixel = if *occupied {
-			Rgba([255, 255, 255, 255])
-		} else {
-			Rgba([0, 0, 0, 0])
-		};
-		image.put_pixel(x as u32, y as u32, pixel);
+	for y in 0..height {
+		for x in 0..width {
+			let pixel = if mask.get(y, x) {
+				Rgba([255, 255, 255, 255])
+			} else {
+				Rgba([0, 0, 0, 0])
+			};
+			image.put_pixel(x as u32, y as u32, pixel);
+		}
 	}
 
 	image
 }
 
-pub fn save_mask_image(mask: &Array2<bool>, path: &Path) -> Result<(), GlyphWeaveError> {
+pub fn save_mask_image(mask: &BitMask, path: &Path) -> Result<(), GlyphWeaveError> {
 	let image = mask_to_image(mask);
 	image.save(path).map_err(|source| GlyphWeaveError::Image {
 		path: path.to_path_buf(),
@@ -167,7 +168,7 @@ mod tests {
 		assert!(size > 0);
 
 		let mask = build_shape_mask(&canvas, "HELLO", &font, size);
-		assert_eq!(mask.dim(), (400, 800));
+		assert_eq!((mask.nrows(), mask.ncols()), (400, 800));
 		assert!(total_usable_area(&mask) > 0);
 	}
 }
