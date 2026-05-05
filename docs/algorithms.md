@@ -55,13 +55,21 @@ Goal: use Monte Carlo search to pick stronger placements each step.
 Key ideas:
 
 - sample multiple candidate placements as root children
-- run UCB-based selection and rollout simulation for each child
+- run UCB-based selection and **diff-and-rollback rollout** for each
+  child: simulated placements are applied to the live mask /
+  availability state and then explicitly rolled back via a recorded
+  diff, instead of cloning the whole board each rollout. This keeps
+  rollouts allocation-light and makes deeper search affordable.
 - choose the child with best estimated reward (usable-area gain)
 
 Best for:
 
 - quality-oriented generation
 - scenarios where runtime can be traded for better packing decisions
+
+Tip: keep `--max-tries` modest (~200). Each "try" expands the search
+tree and runs rollouts, so budgets sized for `fast-grid` will produce
+runaway runtimes here.
 
 ## 5. SimulatedAnnealing
 
@@ -80,4 +88,7 @@ Best for:
 
 ## Rotation Support
 
-v0.2 supports `0` and `90` degrees through style rotations.
+Rotations accept any integer angles in `0..=360` degrees (CLI:
+`--rotations 0,30,60,90`; library: `Rotation(u16)`). The earlier `0` /
+`90`-only restriction has been lifted; `Rotation::ZERO` and
+`Rotation::NINETY` constants remain for the common case.

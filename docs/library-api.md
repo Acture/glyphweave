@@ -4,8 +4,13 @@
 
 - `CloudRequest`: input configuration
 - `CloudResult`: output SVG + placements + stats
-- `AlgorithmKind`: `FastGrid` / `SpiralGreedy` / `RandomBaseline`
+- `AlgorithmKind`: `FastGrid` / `SpiralGreedy` / `RandomBaseline` / `Mcts` / `SimulatedAnnealing`
 - `CanvasConfig`, `ShapeConfig`, `StyleConfig`, `WordEntry`, `RenderOptions`
+- `ShapeSource`: enum with `Text { text, font_size }` and `Image { path, threshold }` variants. Construct via `ShapeConfig::text(...)` or `ShapeConfig::image(...)` helpers.
+- `Rotation`: newtype `pub struct Rotation(pub u16)`. Accepts any integer degrees in `0..=360`; previously restricted to `0` / `90`. Constants `Rotation::ZERO` / `Rotation::NINETY` remain available.
+- `CloudStats`: includes `elapsed: Duration` (replaces the old `elapsed_ms: u128`) and `internal_evaluations: usize` for the true number of placement-attempt evaluations performed by the chosen algorithm.
+- `RenderMetadata<'a>`: bundle handed to `render::render_svg` carrying seed, algorithm, and stats; embedded into the SVG output as a `<metadata>` element.
+- `GlyphWeaveError`: the `Io` variant now carries `{ path, source }` for richer error context.
 
 ## Entry Point
 
@@ -33,7 +38,7 @@ use std::sync::Arc;
 let font = load_font_from_file("fonts/NotoSansSC-Regular.ttf")?;
 let request = CloudRequest {
     canvas: CanvasConfig::default(),
-    shape: ShapeConfig { text: "HELLO".into(), font_size: FontSizeSpec::AutoFit },
+    shape: ShapeConfig::text("HELLO", FontSizeSpec::AutoFit),
     words: vec![WordEntry::new("rust", 2.0), WordEntry::new("svg", 1.0)],
     style: StyleConfig::default(),
     algorithm: AlgorithmKind::FastGrid,
@@ -61,4 +66,23 @@ Set `seed` to a fixed value to make layout output reproducible for snapshots and
 `serde::Serialize`. Use any serde-compatible serializer (e.g. `serde_json`)
 to export placements for downstream consumption (D3, web frontends, etc.).
 
-`Rotation` serializes as a numeric value (`0` or `90`) rather than a string.
+`Rotation` serializes as a numeric value (any integer in `0..=360`) rather
+than a string. `CloudStats.elapsed` serializes as a `Duration` (seconds +
+nanoseconds); call `.as_millis()` if a single number is preferred for
+display.
+
+## Metadata in Output
+
+Every generated SVG now embeds a `<metadata>` element with the seed used,
+algorithm name, internal evaluation count, and elapsed time. This makes
+generated assets self-describing for reproducibility: a single SVG file
+contains enough context to regenerate it (`--seed`, algorithm, stats).
+The metadata is also written to stderr (the seed in particular is always
+echoed to stderr so scripted runs can capture it even when a random seed
+is auto-selected).
+
+## Strict TOML Configuration
+
+Config files are parsed with `deny_unknown_fields`: typos or unsupported
+keys produce an error rather than being silently ignored. This catches
+accidental drift between docs and config schema.
