@@ -195,7 +195,7 @@ pub fn build_image_mask(
 	let img = img.resize_exact(
 		canvas.width as u32,
 		canvas.height as u32,
-		image::imageops::FilterType::Lanczos3,
+		image::imageops::FilterType::Nearest,
 	);
 	let rgba = img.to_rgba8();
 	let mut mask = BitMask::zeros(canvas.height, canvas.width);
@@ -279,5 +279,49 @@ mod tests {
 		let mask = build_shape_mask(&canvas, "HELLO", &font, size);
 		assert_eq!((mask.nrows(), mask.ncols()), (400, 800));
 		assert!(total_usable_area(&mask) > 0);
+	}
+}
+
+#[cfg(test)]
+mod image_mask_tests {
+	use super::*;
+
+	#[test]
+	fn build_image_mask_returns_within_reasonable_time_on_large_input() {
+		use image::{ImageBuffer, Rgba};
+		use std::time::Instant;
+
+		let mut buf: ImageBuffer<Rgba<u8>, _> = ImageBuffer::new(1024, 1024);
+		for (x, y, pixel) in buf.enumerate_pixels_mut() {
+			let cx = 512.0_f32;
+			let cy = 512.0_f32;
+			let dx = x as f32 - cx;
+			let dy = y as f32 - cy;
+			let inside = (dx * dx + dy * dy).sqrt() < 400.0;
+			*pixel = if inside {
+				Rgba([0, 0, 0, 255])
+			} else {
+				Rgba([0, 0, 0, 0])
+			};
+		}
+		let tmp = std::env::temp_dir().join("glyphweave_test_large.png");
+		buf.save(&tmp).expect("save large png");
+
+		let canvas = CanvasConfig {
+			width: 800,
+			height: 600,
+			margin: 0,
+		};
+		let start = Instant::now();
+		let _mask = build_image_mask(&canvas, &tmp, 127).expect("build_image_mask");
+		let elapsed = start.elapsed();
+
+		assert!(
+			elapsed.as_millis() < 500,
+			"build_image_mask took {}ms, expected <500ms with Nearest",
+			elapsed.as_millis()
+		);
+
+		std::fs::remove_file(&tmp).ok();
 	}
 }
