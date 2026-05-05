@@ -1,10 +1,9 @@
-//! Rectangular spiral greedy layout.
+//! Archimedean spiral greedy layout.
 //!
-//! Walks an axis-aligned rectangular spiral (right-N, down-N, left-N+1, up-N+1, ...)
-//! from the mask centroid. Despite the name "spiral", the offset sequence is *not*
-//! Archimedean and density is anisotropic (dense along axes, sparse along
-//! diagonals). For shape-aware Archimedean spirals see ShapeWordle (Wang et al.,
-//! IEEE TVCG 2020).
+//! Walks a discretized Archimedean spiral `r(θ) = θ` from the mask centroid
+//! with adaptive step `Δθ ≈ 1/(2r)` so neighboring samples are ~1 cell apart.
+//! Produces isotropic angular density, matching the spiral families used in
+//! Wordle / ShapeWordle (Wang et al., IEEE TVCG 2020) baselines.
 //!
 //! See docs/algorithms.md §2 for the trade-offs.
 
@@ -150,43 +149,37 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 	}
 }
 
-/// Build a rectangular spiral offset table out to `radius_limit`.
+/// Build an Archimedean spiral offset table out to `radius_limit`.
 ///
-/// The walk is right→down→left→up with step lengths 1,1,2,2,3,3,..., producing
-/// a square spiral that visits all axis-aligned offsets in [-r..r]² in roughly
-/// concentric ring order. Note this is *rectangular*, not Archimedean — true
-/// Archimedean would interpolate `(r cos θ, r sin θ)`.
+/// Discretizes the continuous spiral `r(θ) = a·θ` with `a = 1/(2π)` so that
+/// successive revolutions are exactly one cell apart radially (no gaps). The
+/// adaptive angular step `Δθ ≈ 1/(2r)` keeps neighboring samples ~½ cell
+/// apart along the arm. A `HashSet` deduplicates samples that round to the
+/// same `(dy, dx)` cell, so the output traverses each touched cell exactly
+/// once in spiral (center-out) order.
 fn spiral_offsets(radius_limit: usize) -> Vec<(isize, isize)> {
-	let mut offsets = Vec::with_capacity((2 * radius_limit + 1).pow(2));
+	use std::f64::consts::PI;
+	let cap = radius_limit.saturating_mul(radius_limit).saturating_mul(4) + 1;
+	let mut offsets: Vec<(isize, isize)> = Vec::with_capacity(cap.min(8_000_000));
+	let mut seen: std::collections::HashSet<(isize, isize)> =
+		std::collections::HashSet::with_capacity(cap.min(8_000_000));
+	seen.insert((0, 0));
 	offsets.push((0, 0));
 
-	let mut x = 0isize;
-	let mut y = 0isize;
-	let mut step = 1isize;
+	let a = 1.0_f64 / (2.0 * PI);
+	let r_max = radius_limit as f64;
+	let mut theta = 0.0_f64;
 
-	while x.unsigned_abs() <= radius_limit && y.unsigned_abs() <= radius_limit {
-		for _ in 0..step {
-			x += 1;
-			offsets.push((y, x));
-		}
-		for _ in 0..step {
-			y += 1;
-			offsets.push((y, x));
-		}
-		step += 1;
+	while a * theta <= r_max {
+		let r = a * theta;
+		let dtheta = if r < 1.0 { 0.5 } else { 1.0 / (2.0 * r) };
+		theta += dtheta;
 
-		for _ in 0..step {
-			x -= 1;
+		let r = a * theta;
+		let x = (r * theta.cos()).round() as isize;
+		let y = (r * theta.sin()).round() as isize;
+		if seen.insert((y, x)) {
 			offsets.push((y, x));
-		}
-		for _ in 0..step {
-			y -= 1;
-			offsets.push((y, x));
-		}
-		step += 1;
-
-		if step as usize > radius_limit * 2 {
-			break;
 		}
 	}
 
