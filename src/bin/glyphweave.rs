@@ -23,7 +23,7 @@ use std::sync::Arc;
 const DEFAULT_CANVAS_SIZE: (usize, usize) = (1920, 1080);
 const DEFAULT_CANVAS_MARGIN: usize = 10;
 const DEFAULT_WORD_SIZE_RANGE: (usize, usize) = (10, 30);
-const DEFAULT_WORD_PADDING: usize = 0;
+const DEFAULT_WORD_PADDING: usize = 2;
 const DEFAULT_RATIO: f32 = 0.9;
 const DEFAULT_MAX_TRIES: usize = 10_000;
 const DEFAULT_PALETTE_BASE: &str = "#3B82F6";
