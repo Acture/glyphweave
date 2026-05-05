@@ -26,6 +26,11 @@ pub fn calculate_text_size(
 }
 
 pub fn calculate_auto_font_size(canvas: &CanvasConfig, text: &str, font: &Font) -> usize {
+	let lines: Vec<&str> = text.split('\n').collect();
+	if lines.is_empty() {
+		return 1;
+	}
+
 	let available_width = canvas.width.saturating_sub(2 * canvas.margin);
 	let available_height = canvas.height.saturating_sub(2 * canvas.margin);
 
@@ -35,8 +40,20 @@ pub fn calculate_auto_font_size(canvas: &CanvasConfig, text: &str, font: &Font) 
 
 	while low <= high {
 		let mid = low + (high - low) / 2;
-		let (w, h) = calculate_text_size(text, font, mid, 0, Rotation::Deg0);
-		if w <= available_width && h <= available_height {
+		let fits = if lines.len() == 1 {
+			let (w, h) = calculate_text_size(lines[0], font, mid, 0, Rotation::Deg0);
+			w <= available_width && h <= available_height
+		} else {
+			let max_w = lines
+				.iter()
+				.map(|line| calculate_text_size(line, font, mid, 0, Rotation::Deg0).0)
+				.max()
+				.unwrap_or(0);
+			let line_height = mid + mid / 5;
+			let total_h = line_height * lines.len();
+			max_w <= available_width && total_h <= available_height
+		};
+		if fits {
 			best = mid;
 			low = mid + 1;
 		} else {
@@ -57,46 +74,96 @@ pub fn build_shape_mask(
 	font_size: usize,
 ) -> BitMask {
 	let mut mask = BitMask::zeros(canvas.height, canvas.width);
+	let lines: Vec<&str> = text.split('\n').collect();
 
-	let metrics: Vec<_> = text
-		.chars()
-		.map(|c| font.metrics(c, font_size as f32))
-		.collect();
-	let text_width = metrics.iter().map(|m| m.advance_width).sum::<f32>().ceil() as usize;
-	let text_height = metrics.iter().map(|m| m.height).max().unwrap_or(0);
+	if lines.len() <= 1 {
+		let line = lines.first().copied().unwrap_or("");
+		let metrics: Vec<_> = line
+			.chars()
+			.map(|c| font.metrics(c, font_size as f32))
+			.collect();
+		let text_width = metrics.iter().map(|m| m.advance_width).sum::<f32>().ceil() as usize;
+		let text_height = metrics.iter().map(|m| m.height).max().unwrap_or(0);
 
-	let offset_x = canvas.margin
-		+ (canvas
-			.width
-			.saturating_sub(2 * canvas.margin)
-			.saturating_sub(text_width))
-			/ 2;
-	let offset_y = canvas.margin
-		+ (canvas
-			.height
-			.saturating_sub(2 * canvas.margin)
-			.saturating_sub(text_height))
-			/ 2;
+		let offset_x = canvas.margin
+			+ (canvas
+				.width
+				.saturating_sub(2 * canvas.margin)
+				.saturating_sub(text_width))
+				/ 2;
+		let offset_y = canvas.margin
+			+ (canvas
+				.height
+				.saturating_sub(2 * canvas.margin)
+				.saturating_sub(text_height))
+				/ 2;
 
-	let mut cursor_x = offset_x;
-
-	for (ch, glyph_metrics) in text.chars().zip(metrics.iter()) {
-		let (raster_metrics, bitmap) = font.rasterize(ch, font_size as f32);
-
-		for y in 0..raster_metrics.height {
-			for x in 0..raster_metrics.width {
-				let pixel = bitmap[y * raster_metrics.width + x];
-				if pixel > 127 {
-					let px = cursor_x + x;
-					let py = offset_y + y;
-					if px < canvas.width && py < canvas.height {
-						mask.set(py, px, true);
+		let mut cursor_x = offset_x;
+		for (ch, glyph_metrics) in line.chars().zip(metrics.iter()) {
+			let (raster_metrics, bitmap) = font.rasterize(ch, font_size as f32);
+			for y in 0..raster_metrics.height {
+				for x in 0..raster_metrics.width {
+					let pixel = bitmap[y * raster_metrics.width + x];
+					if pixel > 127 {
+						let px = cursor_x + x;
+						let py = offset_y + y;
+						if px < canvas.width && py < canvas.height {
+							mask.set(py, px, true);
+						}
 					}
 				}
 			}
+			cursor_x += glyph_metrics.advance_width.ceil() as usize;
 		}
+		return mask;
+	}
 
-		cursor_x += glyph_metrics.advance_width.ceil() as usize;
+	let line_height = font_size + font_size / 5;
+	let line_widths: Vec<usize> = lines
+		.iter()
+		.map(|line| {
+			let metrics: Vec<_> = line
+				.chars()
+				.map(|c| font.metrics(c, font_size as f32))
+				.collect();
+			metrics.iter().map(|m| m.advance_width).sum::<f32>().ceil() as usize
+		})
+		.collect();
+	let total_height = line_height * lines.len();
+	let offset_y_base = canvas.margin
+		+ canvas
+			.height
+			.saturating_sub(2 * canvas.margin)
+			.saturating_sub(total_height)
+			/ 2;
+
+	for (line_idx, (line, line_w)) in lines.iter().zip(line_widths.iter()).enumerate() {
+		let offset_x = canvas.margin
+			+ canvas
+				.width
+				.saturating_sub(2 * canvas.margin)
+				.saturating_sub(*line_w)
+				/ 2;
+		let offset_y = offset_y_base + line_idx * line_height;
+
+		let mut cursor_x = offset_x;
+		for ch in line.chars() {
+			let (raster_metrics, bitmap) = font.rasterize(ch, font_size as f32);
+			for ry in 0..raster_metrics.height {
+				for rx in 0..raster_metrics.width {
+					let pixel = bitmap[ry * raster_metrics.width + rx];
+					if pixel > 127 {
+						let px = cursor_x + rx;
+						let py = offset_y + ry;
+						if px < canvas.width && py < canvas.height {
+							mask.set(py, px, true);
+						}
+					}
+				}
+			}
+			let glyph_metrics = font.metrics(ch, font_size as f32);
+			cursor_x += glyph_metrics.advance_width.ceil() as usize;
+		}
 	}
 
 	mask

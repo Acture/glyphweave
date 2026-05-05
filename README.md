@@ -76,6 +76,15 @@ svg
 glyphweave --text "AI" --word-file words.txt --algorithm spiral-greedy --rotations 0,90 --output ai.svg
 ```
 
+Multi-line shape text (avoids needing to escape newlines in the shell):
+
+```bash
+glyphweave --text-lines "DATA,SCIENCE" --word-file words.txt --output data-science.svg
+```
+
+`--text-lines` accepts comma-separated lines and joins them with `\n` internally;
+each line is rendered centered, stacked vertically with a 20% line gap.
+
 Show all flags:
 
 ```bash
