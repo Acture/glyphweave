@@ -8,7 +8,7 @@ mod spiral_greedy;
 mod text_cache;
 
 use crate::core::error::GlyphWeaveError;
-use crate::core::model::{AlgorithmKind, CloudPlacement, StyleConfig, WordEntry};
+use crate::core::model::{CloudPlacement, StyleConfig, WordEntry};
 use fontdue::Font;
 use rand::RngCore;
 
@@ -46,14 +46,4 @@ pub trait LayoutStrategy {
 		request: &LayoutRequest<'_>,
 		rng: &mut dyn RngCore,
 	) -> Result<LayoutResult, GlyphWeaveError>;
-}
-
-pub fn strategy_for(kind: AlgorithmKind) -> Box<dyn LayoutStrategy> {
-	match kind {
-		AlgorithmKind::RandomBaseline => Box::new(RandomBaselineStrategy),
-		AlgorithmKind::FastGrid => Box::new(FastGridStrategy),
-		AlgorithmKind::SpiralGreedy => Box::new(SpiralGreedyStrategy),
-		AlgorithmKind::Mcts => Box::new(MctsStrategy),
-		AlgorithmKind::SimulatedAnnealing => Box::new(SimulatedAnnealingStrategy),
-	}
 }

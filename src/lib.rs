@@ -7,7 +7,10 @@ pub mod render;
 mod embedded_fonts;
 
 use crate::core::error::GlyphWeaveError;
-use crate::layout::{LayoutRequest, TextSizeCache, strategy_for};
+use crate::layout::{
+	FastGridStrategy, LayoutRequest, LayoutStrategy, MctsStrategy, RandomBaselineStrategy,
+	SimulatedAnnealingStrategy, SpiralGreedyStrategy, TextSizeCache,
+};
 use crate::mask::{
 	build_image_mask, build_shape_mask, calculate_auto_font_size, save_mask_image,
 	total_usable_area,
@@ -72,8 +75,15 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 		text_size_cache: TextSizeCache::new(),
 	};
 
-	let strategy = strategy_for(request.algorithm);
-	let layout_result = strategy.place(&layout_req, &mut rng)?;
+	let layout_result = match request.algorithm {
+		AlgorithmKind::RandomBaseline => RandomBaselineStrategy.place(&layout_req, &mut rng)?,
+		AlgorithmKind::FastGrid => FastGridStrategy.place(&layout_req, &mut rng)?,
+		AlgorithmKind::SpiralGreedy => SpiralGreedyStrategy.place(&layout_req, &mut rng)?,
+		AlgorithmKind::Mcts => MctsStrategy.place(&layout_req, &mut rng)?,
+		AlgorithmKind::SimulatedAnnealing => {
+			SimulatedAnnealingStrategy.place(&layout_req, &mut rng)?
+		}
+	};
 
 	let svg = render::render_svg(
 		&request.canvas,
