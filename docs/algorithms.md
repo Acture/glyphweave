@@ -16,20 +16,23 @@ Best for:
 - larger word lists
 - production default
 
-## 2. SpiralGreedy
+## 2. SpiralGreedy (rectangular spiral)
 
-Goal: produce visually coherent center-out layouts.
+Goal: produce visually coherent center-out layouts on an axis-aligned grid.
 
 Key ideas:
 
 - start from mask centroid
-- search candidate positions along a spiral trajectory
+- traverse a **rectangular spiral** of cell offsets (1 right, 1 down, 2 left, 2 up, 3 right, ...) — *not* a true Archimedean spiral. Trade-off: faster to enumerate but with anisotropic density (dense along axes, sparse along diagonals)
 - prefer larger font sizes first, then fallback
 
 Best for:
 
 - stable visual structure
 - center-focused compositions
+- baseline against shape-aware spiral methods (e.g. ShapeWordle's distance-field-driven Archimedean spiral)
+
+Limitation: ~195k offset cells are pre-tabulated; for masks where most candidate slots are far from the center, this becomes the dominant cost (see internal_evaluations stats).
 
 ## 3. RandomBaseline
 
