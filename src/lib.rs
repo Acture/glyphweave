@@ -21,7 +21,8 @@ use std::time::Instant;
 
 pub use crate::core::model::{
 	AlgorithmKind, CanvasConfig, CloudPlacement, CloudRequest, CloudResult, CloudStats,
-	FontSizeSpec, RenderOptions, Rotation, ShapeConfig, ShapeSource, StyleConfig, WordEntry,
+	FontSizeSpec, RenderMetadata, RenderOptions, Rotation, ShapeConfig, ShapeSource, StyleConfig,
+	WordEntry,
 };
 pub use crate::font::{
 	discover_system_font_candidates, load_default_embedded_font, load_font_from_file,
@@ -85,15 +86,23 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 		}
 	};
 
+	let placed_words = layout_result.placements.len();
+	let fill_ratio = layout_result.used_area as f32 / total_area as f32;
+
+	let metadata = RenderMetadata {
+		seed: used_seed,
+		placed_words,
+		fill_ratio,
+		algorithm: request.algorithm.as_str(),
+	};
+
 	let svg = render::render_svg(
 		&request.canvas,
 		&layout_result.placements,
 		request.font.as_ref(),
 		&font::font_family_name(request.font.as_ref()),
+		&metadata,
 	);
-
-	let placed_words = layout_result.placements.len();
-	let fill_ratio = layout_result.used_area as f32 / total_area as f32;
 
 	Ok(CloudResult {
 		svg,
