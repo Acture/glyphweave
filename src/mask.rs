@@ -63,7 +63,11 @@ pub fn calculate_auto_font_size(canvas: &CanvasConfig, text: &str, font: &Font) 
 				.map(|line| calculate_text_size(line, font, mid, 0, Rotation::Deg0).0)
 				.max()
 				.unwrap_or(0);
-			let line_height = mid + mid / 5;
+			let line_height = if let Some(m) = font.horizontal_line_metrics(mid as f32) {
+				m.new_line_size.ceil() as usize
+			} else {
+				mid + mid / 5
+			};
 			let total_h = line_height * lines.len();
 			max_w <= available_width && total_h <= available_height
 		};
@@ -132,7 +136,11 @@ pub fn build_shape_mask(
 		return mask;
 	}
 
-	let line_height = font_size + font_size / 5;
+	let line_height = if let Some(m) = font.horizontal_line_metrics(font_size as f32) {
+		m.new_line_size.ceil() as usize
+	} else {
+		font_size + font_size / 5
+	};
 	let line_widths: Vec<usize> = lines
 		.iter()
 		.map(|line| {
@@ -279,6 +287,21 @@ mod tests {
 		let mask = build_shape_mask(&canvas, "HELLO", &font, size);
 		assert_eq!((mask.nrows(), mask.ncols()), (400, 800));
 		assert!(total_usable_area(&mask) > 0);
+	}
+
+	#[test]
+	fn multiline_uses_fontdue_line_metrics() {
+		let font = crate::font::load_default_embedded_font().expect("embedded font should load");
+		let canvas = CanvasConfig {
+			width: 800,
+			height: 400,
+			margin: 0,
+		};
+		let mask = build_shape_mask(&canvas, "DATA\nSCIENCE", &font, 64);
+		assert!(
+			total_usable_area(&mask) > 0,
+			"multi-line shape should produce non-empty mask"
+		);
 	}
 }
 
