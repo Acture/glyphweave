@@ -1,0 +1,57 @@
+version: 2
+updates:
+  # Cargo dependencies
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - rust
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+    groups:
+      patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+          - minor
+    # Hold major upgrades for human review on these critical deps
+    ignore:
+      - dependency-name: clap
+        update-types: ["version-update:semver-major"]
+      - dependency-name: serde
+        update-types: ["version-update:semver-major"]
+      - dependency-name: image
+        update-types: ["version-update:semver-major"]
+      - dependency-name: fontdue
+        update-types: ["version-update:semver-major"]
+      - dependency-name: ndarray
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "chore(ci)"
+      include: scope
+    groups:
+      actions-patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+          - minor
