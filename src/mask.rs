@@ -310,10 +310,15 @@ mod image_mask_tests {
 	use super::*;
 
 	#[test]
-	fn build_image_mask_returns_within_reasonable_time_on_large_input() {
+	fn build_image_mask_handles_large_input() {
 		use image::{ImageBuffer, Rgba};
-		use std::time::Instant;
 
+		// Build a 1024x1024 mask shaped as a centered disk and feed it through
+		// build_image_mask resized down to 800x600. We don't assert wall-clock
+		// time here — Nearest is dramatically faster than the previous
+		// Lanczos3 path, but timing on CI runners is too noisy for a unit
+		// test. Bench coverage in benches/ remains the source of truth for
+		// performance changes.
 		let mut buf: ImageBuffer<Rgba<u8>, _> = ImageBuffer::new(1024, 1024);
 		for (x, y, pixel) in buf.enumerate_pixels_mut() {
 			let cx = 512.0_f32;
@@ -335,14 +340,12 @@ mod image_mask_tests {
 			height: 600,
 			margin: 0,
 		};
-		let start = Instant::now();
-		let _mask = build_image_mask(&canvas, &tmp, 127).expect("build_image_mask");
-		let elapsed = start.elapsed();
-
+		let mask = build_image_mask(&canvas, &tmp, 127).expect("build_image_mask");
+		assert_eq!(mask.nrows(), 600);
+		assert_eq!(mask.ncols(), 800);
 		assert!(
-			elapsed.as_millis() < 500,
-			"build_image_mask took {}ms, expected <500ms with Nearest",
-			elapsed.as_millis()
+			total_usable_area(&mask) > 0,
+			"non-trivial mask area expected"
 		);
 
 		std::fs::remove_file(&tmp).ok();
