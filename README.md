@@ -76,6 +76,13 @@ svg
 glyphweave --text "AI" --word-file words.txt --algorithm spiral-greedy --rotations 0,90 --output ai.svg
 ```
 
+`--rotations` accepts any integer angles in `0..=360` (degrees), not only
+`0` and `90`. For richer typography, mix multiple angles:
+
+```bash
+glyphweave --text "RUST" --words "rust,svg,layout,cloud" --rotations 0,30,60,90 --output rust.svg
+```
+
 Multi-line shape text (avoids needing to escape newlines in the shell):
 
 ```bash
@@ -84,6 +91,12 @@ glyphweave --text-lines "DATA,SCIENCE" --word-file words.txt --output data-scien
 
 `--text-lines` accepts comma-separated lines and joins them with `\n` internally;
 each line is rendered centered, stacked vertically with a 20% line gap.
+
+Tighter packing with `--word-padding 0` (default is `2` pixels around each word):
+
+```bash
+glyphweave --text "DENSE" --word-file words.txt --word-padding 0 --output dense.svg
+```
 
 Show all flags:
 
@@ -121,7 +134,7 @@ use std::{path::Path, sync::Arc};
 let font = load_font_from_file(Path::new("fonts/NotoSansSC-Regular.ttf"))?;
 let result = generate(CloudRequest {
 	canvas: CanvasConfig { width: 1200, height: 700, margin: 12 },
-	shape: ShapeConfig { text: "DATA".into(), font_size: FontSizeSpec::AutoFit },
+	shape: ShapeConfig::text("DATA", FontSizeSpec::AutoFit),
 	words: vec![WordEntry::new("rust", 2.0), WordEntry::new("svg", 1.0)],
 	style: StyleConfig::default(),
 	algorithm: AlgorithmKind::FastGrid,
@@ -132,8 +145,15 @@ let result = generate(CloudRequest {
 	render: RenderOptions::default(),
 })?;
 std::fs::write("cloud.svg", result.svg)?;
+println!("placed in {} ms", result.stats.elapsed.as_millis());
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
+
+`CloudResult`, `CloudPlacement`, `CloudStats`, and `Rotation` derive
+`serde::Serialize`, so layout output can be exported as JSON for
+downstream visualization tools without an extra mapping layer. For
+image-shaped masks, use `ShapeConfig::image(path, threshold)` instead
+of `ShapeConfig::text(...)`.
 
 ## Algorithm Cheat Sheet
 

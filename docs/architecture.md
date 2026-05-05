@@ -45,5 +45,48 @@ All library operations return `Result<_, GlyphWeaveError>`.
 
 - `InvalidConfig`: request-level validation failures
 - `FontLoad`: font read/parse failures
-- `Io` / `Image`: filesystem and debug-mask failures
+- `Io { path, source }`: filesystem failures, with the offending path attached for actionable error messages
+- `Image`: debug-mask / image decoding failures
 - `Generation`: runtime algorithm failures
+
+## ShapeSource
+
+The shape mask is sourced from a `ShapeSource` enum rather than a single
+text field, decoupling rasterization from the rest of the pipeline:
+
+- `ShapeSource::Text { text, font_size }`: the original path — rasterize
+  glyphs (auto-fit or fixed font size) into a boolean mask. Multi-line
+  text is supported via embedded `\n` (the CLI exposes this through
+  `--text-lines`).
+- `ShapeSource::Image { path, threshold }`: load a PNG, resize to canvas
+  dimensions, and threshold the alpha channel (`alpha > threshold` =
+  inside) to obtain the mask.
+
+Both variants converge on the same `BitMask` representation so all
+downstream layout strategies are agnostic to the mask origin.
+
+## TextSizeCache
+
+Every `generate` call constructs a fresh `TextSizeCache` keyed by
+`(word, font_size, rotation)`. Glyph metrics are computed lazily on
+first lookup and reused across the per-call placement attempts. The
+cache is intentionally per-generate rather than global — it keeps the
+public API allocation-only-on-call and avoids cross-call interference
+in benchmark/snapshot scenarios.
+
+## IncrementalAvailability
+
+`IncrementalAvailability` is the public abstraction over integral-image
+based `O(1)` rectangle availability checks against the current placed
+state. Each layout strategy that needs availability queries works
+through this interface so the integral-image rebuild policy (full
+rebuild vs. pending-rect deltas) can evolve independently of any
+specific algorithm.
+
+## BitMask
+
+The shape mask itself is a `BitMask`: a `1-bit-per-cell` packed
+representation (instead of a `Vec<bool>`). At canvas sizes typical for
+production output this halves cache pressure during the hottest inner
+loops (collision and integral-image scans) and is the dominant reason
+the integral-image rebuild stays cheap.
