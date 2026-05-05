@@ -28,9 +28,40 @@ pub enum FontSizeSpec {
 }
 
 #[derive(Debug, Clone)]
+pub enum ShapeSource {
+	Text {
+		text: String,
+		font_size: FontSizeSpec,
+	},
+	Image {
+		path: PathBuf,
+		threshold: u8,
+	},
+}
+
+#[derive(Debug, Clone)]
 pub struct ShapeConfig {
-	pub text: String,
-	pub font_size: FontSizeSpec,
+	pub source: ShapeSource,
+}
+
+impl ShapeConfig {
+	pub fn text(text: impl Into<String>, font_size: FontSizeSpec) -> Self {
+		Self {
+			source: ShapeSource::Text {
+				text: text.into(),
+				font_size,
+			},
+		}
+	}
+
+	pub fn image(path: impl Into<PathBuf>, threshold: u8) -> Self {
+		Self {
+			source: ShapeSource::Image {
+				path: path.into(),
+				threshold,
+			},
+		}
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -149,10 +180,22 @@ impl CloudRequest {
 			));
 		}
 
-		if self.shape.text.trim().is_empty() {
-			return Err(GlyphWeaveError::InvalidConfig(
-				"shape text must not be empty".to_string(),
-			));
+		match &self.shape.source {
+			ShapeSource::Text { text, .. } => {
+				if text.trim().is_empty() {
+					return Err(GlyphWeaveError::InvalidConfig(
+						"shape text must not be empty".to_string(),
+					));
+				}
+			}
+			ShapeSource::Image { path, .. } => {
+				if !path.exists() {
+					return Err(GlyphWeaveError::InvalidConfig(format!(
+						"shape image path does not exist: {}",
+						path.display()
+					)));
+				}
+			}
 		}
 
 		if !(0.0..=1.0).contains(&self.ratio_threshold) {

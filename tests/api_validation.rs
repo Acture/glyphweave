@@ -25,10 +25,7 @@ fn generate_with_same_seed_is_stable() {
 			height: 260,
 			margin: 8,
 		},
-		shape: ShapeConfig {
-			text: "AI".to_string(),
-			font_size: FontSizeSpec::AutoFit,
-		},
+		shape: ShapeConfig::text("AI", FontSizeSpec::AutoFit),
 		words: vec![
 			WordEntry::new("rust", 2.0),
 			WordEntry::new("svg", 1.0),

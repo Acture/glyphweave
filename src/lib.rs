@@ -8,14 +8,17 @@ mod embedded_fonts;
 
 use crate::core::error::GlyphWeaveError;
 use crate::layout::{LayoutRequest, TextSizeCache, strategy_for};
-use crate::mask::{build_shape_mask, calculate_auto_font_size, save_mask_image, total_usable_area};
+use crate::mask::{
+	build_image_mask, build_shape_mask, calculate_auto_font_size, save_mask_image,
+	total_usable_area,
+};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::time::Instant;
 
 pub use crate::core::model::{
 	AlgorithmKind, CanvasConfig, CloudPlacement, CloudRequest, CloudResult, CloudStats,
-	FontSizeSpec, RenderOptions, Rotation, ShapeConfig, StyleConfig, WordEntry,
+	FontSizeSpec, RenderOptions, Rotation, ShapeConfig, ShapeSource, StyleConfig, WordEntry,
 };
 pub use crate::font::{
 	discover_system_font_candidates, load_default_embedded_font, load_font_from_file,
@@ -27,19 +30,22 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 
 	let started_at = Instant::now();
 
-	let shape_font_size = match request.shape.font_size {
-		FontSizeSpec::Fixed(size) => size,
-		FontSizeSpec::AutoFit => {
-			calculate_auto_font_size(&request.canvas, &request.shape.text, request.font.as_ref())
+	let (shape_mask, shape_font_size) = match &request.shape.source {
+		ShapeSource::Text { text, font_size } => {
+			let resolved = match font_size {
+				FontSizeSpec::Fixed(size) => *size,
+				FontSizeSpec::AutoFit => {
+					calculate_auto_font_size(&request.canvas, text, request.font.as_ref())
+				}
+			};
+			let mask = build_shape_mask(&request.canvas, text, request.font.as_ref(), resolved);
+			(mask, resolved)
+		}
+		ShapeSource::Image { path, threshold } => {
+			let mask = build_image_mask(&request.canvas, path, *threshold)?;
+			(mask, 0)
 		}
 	};
-
-	let shape_mask = build_shape_mask(
-		&request.canvas,
-		&request.shape.text,
-		request.font.as_ref(),
-		shape_font_size,
-	);
 
 	if let Some(path) = &request.render.debug_mask_out {
 		save_mask_image(&shape_mask, path)?;
@@ -134,10 +140,7 @@ mod tests {
 				height: 320,
 				margin: 12,
 			},
-			shape: ShapeConfig {
-				text: "AI".to_string(),
-				font_size: FontSizeSpec::AutoFit,
-			},
+			shape: ShapeConfig::text("AI", FontSizeSpec::AutoFit),
 			words: vec![
 				WordEntry::new("Rust", 2.0),
 				WordEntry::new("Cloud", 1.0),

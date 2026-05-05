@@ -15,11 +15,12 @@ GlyphWeave v0.2 splits the project into a reusable library core and a thin CLI w
 
 1. Parse request (CLI or library caller).
 2. Validate config (`CloudRequest::validate`).
-3. Resolve shape font size (`AutoFit` or fixed).
-4. Rasterize shape text into boolean mask.
-5. Run selected `LayoutStrategy` to place words.
-6. Render placements to SVG string.
-7. Return `CloudResult` with placements + stats.
+3. Resolve `ShapeSource`:
+   - `Text { text, font_size }`: rasterize text (auto-fit or fixed size) into boolean mask.
+   - `Image { path, threshold }`: load PNG, resize to canvas, threshold alpha into boolean mask.
+4. Run selected `LayoutStrategy` to place words.
+5. Render placements to SVG string.
+6. Return `CloudResult` with placements + stats.
 
 ## Layout Plugin Contract
 

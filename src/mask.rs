@@ -169,6 +169,34 @@ pub fn build_shape_mask(
 	mask
 }
 
+pub fn build_image_mask(
+	canvas: &CanvasConfig,
+	image_path: &Path,
+	threshold: u8,
+) -> Result<BitMask, GlyphWeaveError> {
+	let img = image::open(image_path).map_err(|source| GlyphWeaveError::Image {
+		path: image_path.to_path_buf(),
+		source,
+	})?;
+	let img = img.resize_exact(
+		canvas.width as u32,
+		canvas.height as u32,
+		image::imageops::FilterType::Lanczos3,
+	);
+	let rgba = img.to_rgba8();
+	let mut mask = BitMask::zeros(canvas.height, canvas.width);
+	for y in 0..canvas.height {
+		for x in 0..canvas.width {
+			let p = rgba.get_pixel(x as u32, y as u32);
+			let inside = p[3] > threshold;
+			if inside {
+				mask.set(y, x, true);
+			}
+		}
+	}
+	Ok(mask)
+}
+
 pub fn total_usable_area(mask: &BitMask) -> usize {
 	mask.count_ones()
 }

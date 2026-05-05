@@ -32,10 +32,7 @@ fn bench_layouts(c: &mut Criterion) {
 						height: 520,
 						margin: 12,
 					},
-					shape: ShapeConfig {
-						text: "RUST".to_string(),
-						font_size: FontSizeSpec::AutoFit,
-					},
+					shape: ShapeConfig::text("RUST", FontSizeSpec::AutoFit),
 					words: words.clone(),
 					style: StyleConfig {
 						font_size_range: 12..=28,
