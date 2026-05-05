@@ -2,8 +2,9 @@
 
 use glyphweave::{
 	AlgorithmKind, CanvasConfig, CloudRequest, CloudResult, FontSizeSpec, RenderOptions, Rotation,
-	ShapeConfig, StyleConfig, WordEntry, generate, load_default_embedded_font, load_font_from_file,
-	mask::{build_shape_mask, calculate_auto_font_size, calculate_text_size},
+	ShapeConfig, ShapeSource, StyleConfig, WordEntry, generate, load_default_embedded_font,
+	load_font_from_file,
+	mask::{build_image_mask, build_shape_mask, calculate_auto_font_size, calculate_text_size},
 };
 use std::path::Path;
 use std::sync::Arc;
@@ -36,10 +37,7 @@ pub fn build_request(algorithm: AlgorithmKind) -> CloudRequest {
 			height: 220,
 			margin: 8,
 		},
-		shape: ShapeConfig {
-			text: "RUST".to_string(),
-			font_size: FontSizeSpec::AutoFit,
-		},
+		shape: ShapeConfig::text("RUST", FontSizeSpec::AutoFit),
 		words: sample_words(),
 		style: StyleConfig {
 			font_size_range: 10..=20,
@@ -75,19 +73,21 @@ pub fn generate_normalized(request: CloudRequest) -> (CloudRequest, CloudResult,
 }
 
 pub fn assert_placement_constraints(request: &CloudRequest, result: &CloudResult) {
-	let shape_font_size = match request.shape.font_size {
-		FontSizeSpec::Fixed(size) => size,
-		FontSizeSpec::AutoFit => {
-			calculate_auto_font_size(&request.canvas, &request.shape.text, request.font.as_ref())
+	let shape_mask = match &request.shape.source {
+		ShapeSource::Text { text, font_size } => {
+			let resolved = match font_size {
+				FontSizeSpec::Fixed(size) => *size,
+				FontSizeSpec::AutoFit => {
+					calculate_auto_font_size(&request.canvas, text, request.font.as_ref())
+				}
+			};
+			build_shape_mask(&request.canvas, text, request.font.as_ref(), resolved)
+		}
+		ShapeSource::Image { path, threshold } => {
+			build_image_mask(&request.canvas, path, *threshold)
+				.expect("image mask should build for assertions")
 		}
 	};
-
-	let shape_mask = build_shape_mask(
-		&request.canvas,
-		&request.shape.text,
-		request.font.as_ref(),
-		shape_font_size,
-	);
 
 	for (i, placement) in result.placements.iter().enumerate() {
 		let (w, h) = calculate_text_size(

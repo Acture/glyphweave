@@ -59,11 +59,25 @@ pub struct CliArgs {
 	#[arg(long = "rotations", value_delimiter = ',')]
 	pub rotations: Option<Vec<u16>>,
 
-	#[arg(short = 't', long = "text", required = true)]
-	pub shape_text: String,
+	#[arg(short = 't', long = "text", required_unless_present = "shape_image")]
+	pub shape_text: Option<String>,
 
 	#[arg(long = "text-size", value_parser = parse_shape_size)]
 	pub shape_size: Option<FontSizeSpec>,
+
+	#[arg(
+		long = "shape-image",
+		conflicts_with = "shape_text",
+		help = "Path to a PNG mask image used as the shape (alpha channel)"
+	)]
+	pub shape_image: Option<PathBuf>,
+
+	#[arg(
+		long = "shape-image-threshold",
+		default_value_t = 127,
+		help = "Alpha threshold (0-255) for shape image; pixels with alpha > threshold are inside"
+	)]
+	pub shape_image_threshold: u8,
 
 	#[arg(long = "algorithm", value_enum)]
 	pub algorithm: Option<CliAlgorithm>,

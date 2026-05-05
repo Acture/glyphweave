@@ -82,6 +82,18 @@ Show all flags:
 glyphweave --help
 ```
 
+### Image-shaped masks
+
+Use any PNG with an alpha channel as the shape (alpha > threshold = inside):
+
+```bash
+glyphweave --shape-image my_logo.png --shape-image-threshold 127 \
+  --words "rust,svg,layout,cloud" \
+  --canvas-size 1200,800 --output cloud.svg
+```
+
+`--shape-image` is mutually exclusive with `--text`.
+
 ## Use Cases
 
 - Design assets and posters with text-shaped SVG output that stays easy to post-process

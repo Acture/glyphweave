@@ -147,16 +147,24 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 
 	let words = collect_words(&args)?;
 
+	let shape = if let Some(image_path) = args.shape_image.clone() {
+		ShapeConfig::image(image_path, args.shape_image_threshold)
+	} else {
+		let text = args.shape_text.clone().ok_or_else(|| {
+			GlyphWeaveError::InvalidConfig(
+				"either --text or --shape-image must be provided".to_string(),
+			)
+		})?;
+		ShapeConfig::text(text, shape_size)
+	};
+
 	let request = CloudRequest {
 		canvas: CanvasConfig {
 			width: canvas_size.0,
 			height: canvas_size.1,
 			margin: canvas_margin,
 		},
-		shape: ShapeConfig {
-			text: args.shape_text,
-			font_size: shape_size,
-		},
+		shape,
 		words,
 		style: StyleConfig {
 			font_size_range: word_size_range.0..=word_size_range.1,
