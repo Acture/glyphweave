@@ -1,0 +1,21 @@
+name: ❓ Question
+description: Ask how to use something
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        General how-to questions are welcome. For bug reports use the
+        Bug Report template instead. For private concerns
+        (e.g. security), see SECURITY.md.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Commands, code snippets, docs you've already consulted.

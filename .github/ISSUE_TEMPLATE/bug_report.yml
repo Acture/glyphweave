@@ -1,0 +1,67 @@
+name: 🐛 Bug Report
+description: Something doesn't work as documented
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in the sections below.
+        For security issues, see [SECURITY.md](../../SECURITY.md) instead.
+  - type: input
+    id: glyphweave-version
+    attributes:
+      label: glyphweave version
+      description: Output of `glyphweave --version` (or commit SHA if from source)
+      placeholder: "e.g. 0.4.0"
+    validations:
+      required: true
+  - type: input
+    id: rustc-version
+    attributes:
+      label: rustc version
+      description: Output of `rustc --version`
+      placeholder: "e.g. rustc 1.83.0 (90b35a623 2024-11-26)"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other (please specify in details)
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Minimal command line + input files (paste contents) that triggers the bug.
+        If applicable include `--seed` so output is deterministic.
+      render: shell
+      placeholder: |
+        glyphweave --text RUST --words rust,svg --algorithm fast-grid --seed 42 \
+          --font fonts/NotoSansSC-Regular.ttf --no-progress --output out.svg
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include stderr output if the CLI exits non-zero, or attach the SVG.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Logs, screenshots, related issues. Optional.
