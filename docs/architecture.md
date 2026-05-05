@@ -90,3 +90,24 @@ representation (instead of a `Vec<bool>`). At canvas sizes typical for
 production output this halves cache pressure during the hottest inner
 loops (collision and integral-image scans) and is the dominant reason
 the integral-image rebuild stays cheap.
+
+## Fuzz Testing
+
+GlyphWeave ships two complementary fuzz harnesses:
+
+**Stable-Rust fallback** (W8 D2): `cargo test --release --test fuzz_inputs`
+runs a hand-rolled harness that feeds 50 randomized inputs per public
+entry point. Works on stable toolchains and runs in CI.
+
+**Real cargo-fuzz target** (nightly + libFuzzer):
+
+```bash
+rustup install nightly
+cargo install cargo-fuzz
+cargo +nightly fuzz run image_mask  # CTRL-C to stop
+```
+
+The `image_mask` target feeds arbitrary bytes as a PNG-on-disk into
+`build_image_mask` via `ShapeSource::Image` and runs `generate` with a
+small canvas to surface panics in the image decode + mask construction
+path. Crashes are written to `fuzz/artifacts/<target>/`.
