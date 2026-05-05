@@ -62,6 +62,12 @@ pub fn build_request(algorithm: AlgorithmKind) -> CloudRequest {
 	}
 }
 
+pub fn build_request_with_seed(algorithm: AlgorithmKind, seed: u64) -> CloudRequest {
+	let mut request = build_request(algorithm);
+	request.seed = Some(seed);
+	request
+}
+
 pub fn normalize_svg(svg: &str) -> String {
 	svg.split_whitespace().collect::<Vec<_>>().join(" ")
 }
