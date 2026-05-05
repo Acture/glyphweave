@@ -144,7 +144,20 @@ pub fn random_index(rng: &mut dyn RngCore, len: usize) -> usize {
 	if len <= 1 {
 		return 0;
 	}
-	(rng.next_u64() as usize) % len
+	// Rejection sampling removes modulo bias: accept only draws that fall in
+	// the largest multiple of `len` that fits in u64.
+	let len_u64 = len as u64;
+	// rem = 2^64 mod len_u64 (computed safely without overflow).
+	let rem = (u64::MAX % len_u64).wrapping_add(1) % len_u64;
+	// Largest accepted draw is `K*len - 1` where K = floor(2^64 / len). When
+	// `rem == 0`, len divides 2^64 and every draw is accepted.
+	let threshold = 0u64.wrapping_sub(rem);
+	loop {
+		let r = rng.next_u64();
+		if rem == 0 || r < threshold {
+			return (r % len_u64) as usize;
+		}
+	}
 }
 
 pub fn pick_weighted_word<'a>(
@@ -183,7 +196,11 @@ pub fn pick_color<'a>(colors: &'a [String], rng: &mut dyn RngCore) -> &'a str {
 }
 
 pub fn random_unit_f32(rng: &mut dyn RngCore) -> f32 {
-	(rng.next_u64() as f64 / u64::MAX as f64) as f32
+	// Use the high 24 bits of the draw to fill a single-precision mantissa
+	// exactly once, matching the standard `rand` convention for [0, 1) f32
+	// generation.
+	const SCALE: f32 = 1.0 / ((1u32 << 24) as f32);
+	((rng.next_u64() >> 40) as f32) * SCALE
 }
 
 pub fn descending_font_sizes(style: &StyleConfig) -> impl Iterator<Item = usize> {
