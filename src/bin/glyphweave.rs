@@ -154,7 +154,11 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 			margin: canvas_margin,
 		},
 		shape: ShapeConfig {
-			text: args.shape_text,
+			text: if !args.shape_text_lines.is_empty() {
+				args.shape_text_lines.join("\n")
+			} else {
+				args.shape_text.clone().unwrap_or_default()
+			},
 			font_size: shape_size,
 		},
 		words,

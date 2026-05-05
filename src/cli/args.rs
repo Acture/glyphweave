@@ -59,8 +59,19 @@ pub struct CliArgs {
 	#[arg(long = "rotations", value_delimiter = ',')]
 	pub rotations: Option<Vec<u16>>,
 
-	#[arg(short = 't', long = "text", required = true)]
-	pub shape_text: String,
+	#[arg(
+		short = 't',
+		long = "text",
+		required_unless_present = "shape_text_lines"
+	)]
+	pub shape_text: Option<String>,
+
+	#[arg(
+		long = "text-lines",
+		value_delimiter = ',',
+		help = "Multi-line shape text (comma-separated lines, joined with newlines)"
+	)]
+	pub shape_text_lines: Vec<String>,
 
 	#[arg(long = "text-size", value_parser = parse_shape_size)]
 	pub shape_size: Option<FontSizeSpec>,
