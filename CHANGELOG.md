@@ -1,3 +1,58 @@
+## [0.4.0] - 2026-05-05
+
+### 🚀 Features
+
+- *(api)* Derive serde::Serialize for output types
+- *(cli)* Always echo used seed and key stats to stderr
+- *(config)* [**breaking**] Reject unknown TOML fields with deny_unknown_fields
+- *(error)* [**breaking**] Include path context in IO and image errors
+- *(cli)* Expose --word-padding for inter-word spacing
+- *(stats)* Unify attempts semantics across strategies, add internal_evaluations
+- *(shape)* Support multi-line shape text
+- *(api)* [**breaking**] Support image masks via ShapeSource enum
+- *(api)* [**breaking**] Extend Rotation to support arbitrary 0..360 degrees
+- *(stats)* [**breaking**] Change CloudStats.elapsed_ms to Duration
+- *(cli)* Default --word-padding to 2 for readable output
+- *(render)* Embed seed and stats in SVG metadata for self-describing output
+
+### 🐛 Bug Fixes
+
+- *(render)* Correct 90° rotation pivot to align with reserved mask rect
+- *(simulated-annealing)* Correct acceptance criterion semantics
+- *(rng)* Replace modulo bias with rejection sampling in random_index
+- *(render)* Use text-before-edge baseline for pixel-accurate placement
+
+### 💼 Other
+
+- Extend layout_bench to cover MCTS and SimulatedAnnealing
+
+### 🚜 Refactor
+
+- *(error)* Generalize Io and Image error wording
+
+### 📚 Documentation
+
+- *(spiral-greedy)* Clarify that this is a rectangular, not Archimedean, spiral
+
+### ⚡ Performance
+
+- *(layout)* Share incremental integral image across all strategies
+- *(spiral-greedy)* Cache spiral offsets, fix capacity, recenter on geometric mean
+- *(layout)* Cache calculate_text_size per generate()
+- *(mask)* Replace Array2<bool> with bit-packed BitMask
+- *(mcts)* Rollout uses diff-and-rollback instead of mask clone
+- *(layout)* Inline strategy dispatch, drop Box<dyn LayoutStrategy>
+- *(spiral)* Prune offsets by canvas bounds and per-canvas cache
+
+### 🧪 Testing
+
+- Add hand-rolled fuzz harness for user-input parsers
+- Add property-based layout invariant tests via proptest
+
+### ⚙️ Miscellaneous Tasks
+
+- Switch crates.io publishing to trusted publishing
+- Also run cargo test with --features embedded_fonts
 ## [0.3.0] - 2026-03-06
 
 ### 💥 Breaking Changes
