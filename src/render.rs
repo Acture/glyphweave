@@ -26,7 +26,7 @@ pub fn render_svg(
 				.set("font-family", font_family)
 				.set("font-size", placement.font_size)
 				.set("fill", placement.color.as_str())
-				.set("dominant-baseline", "hanging")
+				.set("dominant-baseline", "text-before-edge")
 				.set("text-anchor", "start")
 		} else {
 			// Unrotated text bbox is (0,0)-(uw,uh). Rotating by `deg` around
@@ -56,7 +56,7 @@ pub fn render_svg(
 				.set("font-family", font_family)
 				.set("font-size", placement.font_size)
 				.set("fill", placement.color.as_str())
-				.set("dominant-baseline", "hanging")
+				.set("dominant-baseline", "text-before-edge")
 				.set("text-anchor", "start")
 				.set("transform", format!("translate({tx} {ty}) rotate({deg})"))
 		};
@@ -65,6 +65,40 @@ pub fn render_svg(
 	}
 
 	doc.to_string()
+}
+
+#[cfg(test)]
+mod baseline_tests {
+	use super::*;
+	use crate::core::model::{CanvasConfig, CloudPlacement, Rotation};
+
+	#[test]
+	fn render_uses_text_before_edge_baseline() {
+		let canvas = CanvasConfig {
+			width: 100,
+			height: 50,
+			margin: 0,
+		};
+		let placements = vec![CloudPlacement {
+			word: "x".into(),
+			x: 10,
+			y: 20,
+			font_size: 12,
+			color: "#000".into(),
+			rotation: Rotation::Deg0,
+		}];
+		let font = crate::font::load_font_from_file(
+			std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fonts/NotoSansSC-Regular.ttf"),
+		)
+		.expect("test font should load");
+		let svg = render_svg(&canvas, &placements, &font, "Test Font");
+		assert!(
+			svg.contains("text-before-edge"),
+			"must use text-before-edge baseline"
+		);
+		assert!(svg.contains(r#"x="10""#));
+		assert!(svg.contains(r#"y="20""#));
+	}
 }
 
 #[cfg(all(test, feature = "embedded_fonts"))]
