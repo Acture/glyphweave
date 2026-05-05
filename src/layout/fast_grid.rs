@@ -53,7 +53,7 @@ impl LayoutStrategy for FastGridStrategy {
 
 				let idx = random_index(rng, positions.len());
 				let (y, x) = positions[idx];
-				if !mask[[y, x]] {
+				if !mask.get(y, x) {
 					positions.swap_remove(idx);
 					continue;
 				}

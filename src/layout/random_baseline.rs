@@ -49,7 +49,7 @@ impl LayoutStrategy for RandomBaselineStrategy {
 
 			let idx = random_index(rng, positions.len());
 			let (y, x) = positions[idx];
-			if !mask[[y, x]] {
+			if !mask.get(y, x) {
 				positions.swap_remove(idx);
 				if positions.len() < POOL_REFILL_THRESHOLD {
 					positions = available_positions(&mask);

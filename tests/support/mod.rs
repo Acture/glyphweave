@@ -110,7 +110,7 @@ pub fn assert_placement_constraints(request: &CloudRequest, result: &CloudResult
 		for dy in 0..h {
 			for dx in 0..w {
 				assert!(
-					shape_mask[[placement.y + dy, placement.x + dx]],
+					shape_mask.get(placement.y + dy, placement.x + dx),
 					"placement {i} leaves shape at ({}, {})",
 					placement.x + dx,
 					placement.y + dy
