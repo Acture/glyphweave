@@ -97,7 +97,7 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 			attempts: layout_result.attempts,
 			internal_evaluations: layout_result.internal_evaluations,
 			placed_words,
-			elapsed_ms: started_at.elapsed().as_millis(),
+			elapsed: started_at.elapsed(),
 		},
 	})
 }

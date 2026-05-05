@@ -209,7 +209,7 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 		result.stats.seed,
 		result.stats.attempts,
 		result.stats.internal_evaluations,
-		result.stats.elapsed_ms,
+		result.stats.elapsed.as_millis(),
 		output_path.display()
 	);
 
