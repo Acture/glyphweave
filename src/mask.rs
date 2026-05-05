@@ -19,10 +19,24 @@ pub fn calculate_text_size(
 	let width = metrics.iter().map(|m| m.advance_width).sum::<f32>().ceil() as usize + 2 * padding;
 	let height = metrics.iter().map(|m| m.height).max().unwrap_or(0) + 2 * padding;
 
-	match rotation {
-		Rotation::Deg0 => (width, height),
-		Rotation::Deg90 => (height, width),
+	let deg = rotation.degrees();
+	if deg == 0 {
+		return (width, height);
 	}
+	if deg == 90 || deg == 270 {
+		return (height, width);
+	}
+	if deg == 180 {
+		return (width, height);
+	}
+	let radians = rotation.radians();
+	let cos = radians.cos().abs();
+	let sin = radians.sin().abs();
+	let w = width as f32;
+	let h = height as f32;
+	let new_w = (w * cos + h * sin).ceil() as usize;
+	let new_h = (w * sin + h * cos).ceil() as usize;
+	(new_w, new_h)
 }
 
 pub fn calculate_auto_font_size(canvas: &CanvasConfig, text: &str, font: &Font) -> usize {

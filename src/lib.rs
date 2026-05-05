@@ -105,15 +105,12 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 pub fn rotations_from_degrees(values: &[u16]) -> Result<Vec<Rotation>, GlyphWeaveError> {
 	let mut rotations = Vec::new();
 	for value in values {
-		let rotation = match value {
-			0 => Rotation::Deg0,
-			90 => Rotation::Deg90,
-			_ => {
-				return Err(GlyphWeaveError::InvalidConfig(format!(
-					"unsupported rotation '{value}', only 0 and 90 are supported"
-				)));
-			}
-		};
+		if *value >= 360 {
+			return Err(GlyphWeaveError::InvalidConfig(format!(
+				"unsupported rotation '{value}', must be in 0..360"
+			)));
+		}
+		let rotation = Rotation(*value);
 		if !rotations.contains(&rotation) {
 			rotations.push(rotation);
 		}
