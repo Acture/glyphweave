@@ -16,16 +16,25 @@ use crate::layout::common::{
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use crate::mask::mask_centroid;
 use rand::RngCore;
-use std::sync::{Arc, OnceLock};
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock, RwLock};
 
-const SEARCH_RADIUS_LIMIT: usize = 220;
+type SpiralOffsets = Arc<[(isize, isize)]>;
 
-static SPIRAL_OFFSETS: OnceLock<Arc<[(isize, isize)]>> = OnceLock::new();
+static SPIRAL_OFFSETS_BY_RADIUS: OnceLock<RwLock<HashMap<usize, SpiralOffsets>>> = OnceLock::new();
 
-fn cached_spiral_offsets() -> &'static [(isize, isize)] {
-	SPIRAL_OFFSETS
-		.get_or_init(|| Arc::from(spiral_offsets(SEARCH_RADIUS_LIMIT)))
-		.as_ref()
+fn cached_spiral_offsets(radius: usize) -> SpiralOffsets {
+	let cache = SPIRAL_OFFSETS_BY_RADIUS.get_or_init(|| RwLock::new(HashMap::new()));
+	if let Some(hit) = cache.read().unwrap().get(&radius) {
+		return Arc::clone(hit);
+	}
+	let built: SpiralOffsets = Arc::from(spiral_offsets(radius));
+	cache
+		.write()
+		.unwrap()
+		.entry(radius)
+		.or_insert_with(|| Arc::clone(&built));
+	built
 }
 
 pub struct SpiralGreedyStrategy;
@@ -45,7 +54,11 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 		}
 
 		let mut center = mask_centroid(&mask);
-		let offsets = cached_spiral_offsets();
+		let mask_w = mask.ncols();
+		let mask_h = mask.nrows();
+		let offsets = cached_spiral_offsets(mask_w.max(mask_h));
+		let mask_w_isize = mask_w as isize;
+		let mask_h_isize = mask_h as isize;
 		let mut availability = IncrementalAvailability::new(&mask);
 		let mut placements = Vec::new();
 		let mut attempts = 0usize;
@@ -76,11 +89,11 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 						request.style.padding,
 						*rotation,
 					);
-					for &(dy, dx) in offsets {
+					for &(dy, dx) in offsets.iter() {
 						let x = center.0 as isize + dx;
 						let y = center.1 as isize + dy;
 
-						if x < 0 || y < 0 {
+						if x < 0 || y < 0 || x >= mask_w_isize || y >= mask_h_isize {
 							continue;
 						}
 
