@@ -35,7 +35,8 @@ Controls typography hierarchy.
 
 Pixels of padding added around each placed word's bounding box.
 
-- default `0` packs words tightly (best for fill ratio, can look dense)
+- default `2` provides comfortable visual separation out of the box
+- `0` packs words tightly (best for fill ratio, can look dense)
 - `1`–`3` improves visual separation in dense clouds at the cost of fewer placements
 - equivalent TOML field: `word_padding`
 
