@@ -16,33 +16,46 @@ fn bench_layouts(c: &mut Criterion) {
 	];
 
 	let mut group = c.benchmark_group("layout");
+	group.sample_size(10);
 
-	for algorithm in [
-		AlgorithmKind::RandomBaseline,
-		AlgorithmKind::FastGrid,
-		AlgorithmKind::SpiralGreedy,
+	for (algorithm, label, max_tries, ratio) in [
+		(
+			AlgorithmKind::RandomBaseline,
+			"RandomBaseline",
+			5_000_usize,
+			0.75_f32,
+		),
+		(AlgorithmKind::FastGrid, "FastGrid", 5_000, 0.75),
+		(AlgorithmKind::SpiralGreedy, "SpiralGreedy", 200, 0.50),
+		(
+			AlgorithmKind::SimulatedAnnealing,
+			"SimulatedAnnealing",
+			1_000,
+			0.50,
+		),
+		(AlgorithmKind::Mcts, "MCTS", 200, 0.50),
 	] {
-		group.bench_function(format!("{:?}", algorithm), |b| {
+		group.bench_function(label, |b| {
 			let words = words.clone();
 			let font = Arc::clone(&font);
 			b.iter(|| {
 				let req = CloudRequest {
 					canvas: CanvasConfig {
-						width: 900,
-						height: 520,
+						width: 600,
+						height: 400,
 						margin: 12,
 					},
 					shape: ShapeConfig::text("RUST", FontSizeSpec::AutoFit),
 					words: words.clone(),
 					style: StyleConfig {
-						font_size_range: 12..=28,
+						font_size_range: 12..=24,
 						padding: 0,
 						colors: vec!["#111111".to_string(), "#2277aa".to_string()],
 						rotations: vec![glyphweave::core::model::Rotation::Deg0],
 					},
 					algorithm,
-					ratio_threshold: 0.75,
-					max_try_count: 5_000,
+					ratio_threshold: ratio,
+					max_try_count: max_tries,
 					seed: Some(42),
 					font: Arc::clone(&font),
 					render: RenderOptions {
