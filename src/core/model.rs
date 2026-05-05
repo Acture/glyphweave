@@ -3,6 +3,7 @@ use fontdue::Font;
 use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct CanvasConfig {
@@ -278,7 +279,15 @@ pub struct CloudStats {
 	pub attempts: usize,
 	pub internal_evaluations: usize,
 	pub placed_words: usize,
-	pub elapsed_ms: u128,
+	#[serde(serialize_with = "serialize_duration_as_millis", rename = "elapsed_ms")]
+	pub elapsed: Duration,
+}
+
+fn serialize_duration_as_millis<S: serde::Serializer>(
+	d: &Duration,
+	s: S,
+) -> Result<S::Ok, S::Error> {
+	s.serialize_u128(d.as_millis())
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
