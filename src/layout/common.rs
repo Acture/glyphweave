@@ -109,6 +109,36 @@ impl IncrementalAvailability {
 			self.pending_rects.clear();
 		}
 	}
+
+	/// Capture the current pending-rect log length so a scoped batch of
+	/// commits can later be unwound via [`IncrementalAvailability::restore`].
+	pub fn snapshot(&self) -> AvailabilitySnapshot {
+		AvailabilitySnapshot {
+			pending_count: self.pending_rects.len(),
+		}
+	}
+
+	/// Roll the availability state back to a previous [`snapshot`]. The caller
+	/// must have already restored `mask` to the cell pattern it had at the
+	/// time the snapshot was taken (typically by re-setting the cells of the
+	/// rectangles committed in the meantime). The integral image is rebuilt
+	/// from `mask` so subsequent queries observe the rolled-back state.
+	///
+	/// Note: if any `commit_rect` between snapshot and restore triggered an
+	/// internal rebuild (i.e. `pending_rects` was cleared), `pending_count`
+	/// could be stale. The implementation below clamps to the current length
+	/// to stay safe and simply rebuilds the integral, which is always
+	/// correct given the restored `mask`.
+	pub fn restore(&mut self, mask: &BitMask, snap: AvailabilitySnapshot) {
+		let target = snap.pending_count.min(self.pending_rects.len());
+		self.pending_rects.truncate(target);
+		self.integral = build_integral(mask);
+	}
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct AvailabilitySnapshot {
+	pending_count: usize,
 }
 
 fn build_integral(mask: &BitMask) -> Array2<u32> {

@@ -1,9 +1,9 @@
 use crate::core::error::GlyphWeaveError;
 use crate::layout::BitMask;
 use crate::layout::common::{
-	IncrementalAvailability, PlacementCandidate, apply_candidate, available_positions,
-	candidate_quality, create_progress_bar, finish_progress, pick_color, sample_candidate,
-	total_area, update_progress,
+	IncrementalAvailability, PlacementCandidate, Rect, apply_candidate, available_positions,
+	candidate_quality, create_progress_bar, finish_progress, occupy_area, pick_color,
+	sample_candidate, total_area, update_progress,
 };
 use crate::layout::{LayoutRequest, LayoutResult, LayoutStrategy};
 use rand::RngCore;
@@ -77,7 +77,9 @@ impl LayoutStrategy for MctsStrategy {
 			for _ in 0..MCTS_ITERATIONS {
 				let selected = select_ucb_child(&children);
 				let reward = rollout_reward(
-					&mask,
+					&mut mask,
+					&mut availability,
+					&positions,
 					&children[selected].candidate,
 					request,
 					total_usable_area,
@@ -190,34 +192,47 @@ fn best_child_index(children: &[ChildNode]) -> usize {
 	best_idx
 }
 
+#[allow(clippy::too_many_arguments)]
 fn rollout_reward(
-	mask: &BitMask,
+	mask: &mut BitMask,
+	availability: &mut IncrementalAvailability,
+	parent_positions: &[(usize, usize)],
 	first: &PlacementCandidate,
 	request: &LayoutRequest<'_>,
 	total_usable_area: usize,
 	rng: &mut dyn RngCore,
 	evaluations: &mut usize,
 ) -> f32 {
-	let mut local_mask = mask.clone();
-	let mut reward = 0.0f32;
+	let snapshot = availability.snapshot();
+	let mut rollout_rects: Vec<Rect> = Vec::with_capacity(ROLLOUT_DEPTH + 1);
 
-	let first_consumed = crate::layout::common::occupy_area(&mut local_mask, first.rect);
-	// Rollout uses its own availability; it rebuilds the integral once per
-	// rollout (P7 will replace the rollout entirely with a cheaper estimator).
-	let mut local_availability = IncrementalAvailability::new(&local_mask);
+	let first_consumed = occupy_area(mask, first.rect);
+	availability.commit_rect(mask, first.rect);
+	rollout_rects.push(first.rect);
+
+	let mut reward = 0.0f32;
 	reward += first_consumed as f32 / total_usable_area as f32;
 	reward += candidate_quality(first, total_usable_area);
 
+	// Borrow the parent's position pool instead of re-scanning the mask each
+	// rollout step. We work on a small clone so swap_remove inside
+	// sample_candidate doesn't mutate the parent pool.
+	let mut local_positions: Vec<(usize, usize)> = parent_positions.to_vec();
+
 	for _ in 0..ROLLOUT_DEPTH {
-		let mut positions = available_positions(&local_mask);
-		if positions.is_empty() {
-			break;
+		if local_positions.is_empty() {
+			// Fallback rescan: only happens if the borrowed pool was already
+			// empty entering the rollout (rare; matches old semantics).
+			local_positions = available_positions(mask);
+			if local_positions.is_empty() {
+				break;
+			}
 		}
 
 		let Some(candidate) = sample_candidate(
-			&local_mask,
-			&local_availability,
-			&mut positions,
+			mask,
+			availability,
+			&mut local_positions,
 			request,
 			rng,
 			ROLLOUT_CANDIDATE_TRIALS,
@@ -226,10 +241,25 @@ fn rollout_reward(
 			break;
 		};
 
-		let consumed = crate::layout::common::occupy_area(&mut local_mask, candidate.rect);
-		local_availability.commit_rect(&local_mask, candidate.rect);
+		let consumed = occupy_area(mask, candidate.rect);
+		availability.commit_rect(mask, candidate.rect);
+		rollout_rects.push(candidate.rect);
 		reward += consumed as f32 / total_usable_area as f32;
 	}
+
+	// Roll the mask back: re-set every cell of every placed rect. Order
+	// doesn't matter for correctness because rollout rects don't overlap
+	// (sample_candidate enforced availability at placement time).
+	for rect in rollout_rects.iter().rev() {
+		let row_end = (rect.y + rect.h).min(mask.nrows());
+		let col_end = (rect.x + rect.w).min(mask.ncols());
+		for y in rect.y..row_end {
+			for x in rect.x..col_end {
+				mask.set(y, x, true);
+			}
+		}
+	}
+	availability.restore(mask, snapshot);
 
 	reward
 }
