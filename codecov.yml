@@ -1,0 +1,22 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 70%        # current baseline; ratchet up over time
+        threshold: 1%      # tolerate 1pp regression per PR
+        if_no_uploads: success
+    patch:
+      default:
+        target: 80%        # PRs should be well-tested
+        threshold: 5%
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: true
+
+ignore:
+  - "src/embedded_fonts.rs"  # font byte blob, no logic
+  - "fuzz/"
+  - "tests/"
+  - "benches/"
