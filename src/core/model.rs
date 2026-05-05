@@ -48,18 +48,36 @@ impl WordEntry {
 	}
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-pub enum Rotation {
-	Deg0,
-	Deg90,
+#[derive(Debug, Clone, Copy)]
+pub struct Rotation(pub u16);
+
+#[allow(non_upper_case_globals)]
+impl Rotation {
+	pub const Deg0: Self = Self(0);
+	pub const Deg90: Self = Self(90);
+	pub const ZERO: Self = Self(0);
+	pub const NINETY: Self = Self(90);
+
+	pub fn degrees(self) -> u16 {
+		self.0 % 360
+	}
+
+	pub fn radians(self) -> f32 {
+		(self.degrees() as f32).to_radians()
+	}
 }
 
-impl Rotation {
-	pub fn degrees(self) -> u16 {
-		match self {
-			Rotation::Deg0 => 0,
-			Rotation::Deg90 => 90,
-		}
+impl PartialEq for Rotation {
+	fn eq(&self, other: &Self) -> bool {
+		self.degrees() == other.degrees()
+	}
+}
+
+impl Eq for Rotation {}
+
+impl std::hash::Hash for Rotation {
+	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+		self.degrees().hash(state);
 	}
 }
 
