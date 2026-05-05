@@ -1,0 +1,83 @@
+name: Bench (PR)
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'benches/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+concurrency:
+  group: bench-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  bench:
+    name: Compare bench against master
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout master baseline
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: baseline
+          lfs: true
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          path: pr
+          lfs: true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache build (baseline)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: baseline
+
+      - name: Cache build (PR)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: pr
+
+      - name: Bench master baseline
+        working-directory: baseline
+        run: |
+          cargo bench --bench layout_bench --features embedded_fonts -- --save-baseline master 2>&1 | tee ../baseline-bench.txt
+
+      - name: Bench PR
+        working-directory: pr
+        run: |
+          # Reuse master baseline saved above by copying target/criterion
+          mkdir -p target
+          cp -r ../baseline/target/criterion target/ 2>/dev/null || true
+          cargo bench --bench layout_bench --features embedded_fonts -- --baseline master 2>&1 | tee ../pr-bench.txt
+
+      - name: Format comparison summary
+        id: summary
+        run: |
+          {
+            echo '## 📊 Bench comparison (master baseline → PR)'
+            echo
+            echo '<details><summary>Full output (PR vs master)</summary>'
+            echo
+            echo '```'
+            grep -E 'time:|change:|Performance has' pr-bench.txt | head -80 || tail -80 pr-bench.txt
+            echo '```'
+            echo
+            echo '</details>'
+          } > comment.md
+          echo "comment_path=comment.md" >> "$GITHUB_OUTPUT"
+
+      - name: Post comment to PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: ${{ steps.summary.outputs.comment_path }}
+          edit-mode: replace
