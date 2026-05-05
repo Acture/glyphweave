@@ -1,3 +1,13 @@
+//! Rectangular spiral greedy layout.
+//!
+//! Walks an axis-aligned rectangular spiral (right-N, down-N, left-N+1, up-N+1, ...)
+//! from the mask centroid. Despite the name "spiral", the offset sequence is *not*
+//! Archimedean and density is anisotropic (dense along axes, sparse along
+//! diagonals). For shape-aware Archimedean spirals see ShapeWordle (Wang et al.,
+//! IEEE TVCG 2020).
+//!
+//! See docs/algorithms.md §2 for the trade-offs.
+
 use crate::core::error::GlyphWeaveError;
 use crate::layout::common::{
 	IncrementalAvailability, Rect, create_progress_bar, descending_font_sizes, finish_progress,
@@ -127,6 +137,12 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 	}
 }
 
+/// Build a rectangular spiral offset table out to `radius_limit`.
+///
+/// The walk is right→down→left→up with step lengths 1,1,2,2,3,3,..., producing
+/// a square spiral that visits all axis-aligned offsets in [-r..r]² in roughly
+/// concentric ring order. Note this is *rectangular*, not Archimedean — true
+/// Archimedean would interpolate `(r cos θ, r sin θ)`.
 fn spiral_offsets(radius_limit: usize) -> Vec<(isize, isize)> {
 	let mut offsets = Vec::with_capacity((2 * radius_limit + 1).pow(2));
 	offsets.push((0, 0));
