@@ -148,6 +148,29 @@ pub enum AlgorithmKind {
 	SimulatedAnnealing,
 }
 
+impl AlgorithmKind {
+	pub fn as_str(&self) -> &'static str {
+		match self {
+			AlgorithmKind::RandomBaseline => "random-baseline",
+			AlgorithmKind::FastGrid => "fast-grid",
+			AlgorithmKind::SpiralGreedy => "spiral-greedy",
+			AlgorithmKind::Mcts => "mcts",
+			AlgorithmKind::SimulatedAnnealing => "simulated-annealing",
+		}
+	}
+}
+
+/// Lightweight metadata embedded in rendered SVG so generated files
+/// describe themselves (seed, algorithm, fill ratio) without external
+/// context.
+#[derive(Debug, Clone)]
+pub struct RenderMetadata<'a> {
+	pub seed: u64,
+	pub placed_words: usize,
+	pub fill_ratio: f32,
+	pub algorithm: &'a str,
+}
+
 #[derive(Debug, Clone)]
 pub struct RenderOptions {
 	pub show_progress: bool,
