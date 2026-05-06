@@ -47,45 +47,41 @@ impl LayoutStrategy for RandomBaselineStrategy {
 				break;
 			}
 
+			let mut placed = false;
 			let idx = random_index(rng, positions.len());
 			let (y, x) = positions[idx];
 			if !mask.get(y, x) {
 				positions.swap_remove(idx);
-				if positions.len() < POOL_REFILL_THRESHOLD {
-					positions = available_positions(&mask);
+			} else if let Some(word_entry) = pick_weighted_word(request.words, rng) {
+				if let Some((font_size, rotation, rect)) = find_fit_at_position(
+					&availability,
+					&mask,
+					x,
+					y,
+					&word_entry.text,
+					request.style,
+					request.font,
+					&request.text_size_cache,
+					&mut internal_evaluations,
+				) {
+					used_area += occupy_area(&mut mask, rect);
+					availability.commit_rect(&mask, rect);
+					let color = pick_color(&request.style.colors, rng);
+					placements.push(placement(
+						&word_entry.text,
+						rect,
+						font_size,
+						color,
+						rotation,
+					));
+					placed = true;
 				}
-				continue;
+			} else {
+				break;
 			}
 
-			let Some(word_entry) = pick_weighted_word(request.words, rng) else {
-				break;
-			};
-
-			if let Some((font_size, rotation, rect)) = find_fit_at_position(
-				&availability,
-				&mask,
-				x,
-				y,
-				&word_entry.text,
-				request.style,
-				request.font,
-				&request.text_size_cache,
-				&mut internal_evaluations,
-			) {
-				used_area += occupy_area(&mut mask, rect);
-				availability.commit_rect(&mask, rect);
-				let color = pick_color(&request.style.colors, rng);
-				placements.push(placement(
-					&word_entry.text,
-					rect,
-					font_size,
-					color,
-					rotation,
-				));
-
-				if positions.len() < POOL_REFILL_THRESHOLD {
-					positions = available_positions(&mask);
-				}
+			if !placed && positions.len() < POOL_REFILL_THRESHOLD {
+				positions = available_positions(&mask);
 			}
 
 			let ratio_progress = (used_area * 100) / total_usable_area;

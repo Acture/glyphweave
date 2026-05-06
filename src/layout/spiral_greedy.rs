@@ -27,13 +27,15 @@ fn cached_spiral_offsets(radius: usize) -> SpiralOffsets {
 	if let Some(hit) = cache.read().unwrap().get(&radius) {
 		return Arc::clone(hit);
 	}
-	let built: SpiralOffsets = Arc::from(spiral_offsets(radius));
-	cache
-		.write()
-		.unwrap()
-		.entry(radius)
-		.or_insert_with(|| Arc::clone(&built));
-	built
+	// Upgrade to write lock; or_insert_with runs at most once per radius even
+	// if multiple first-callers race to the read-miss above — the loser sees
+	// the winner's entry and skips recomputing the (expensive) spiral table.
+	let mut write = cache.write().unwrap();
+	Arc::clone(
+		write
+			.entry(radius)
+			.or_insert_with(|| Arc::from(spiral_offsets(radius))),
+	)
 }
 
 pub struct SpiralGreedyStrategy;
@@ -154,9 +156,15 @@ impl LayoutStrategy for SpiralGreedyStrategy {
 /// Discretizes the continuous spiral `r(θ) = a·θ` with `a = 1/(2π)` so that
 /// successive revolutions are exactly one cell apart radially (no gaps). The
 /// adaptive angular step `Δθ ≈ 1/(2r)` keeps neighboring samples ~½ cell
-/// apart along the arm. A `HashSet` deduplicates samples that round to the
-/// same `(dy, dx)` cell, so the output traverses each touched cell exactly
-/// once in spiral (center-out) order.
+/// apart along the arm, and a `HashSet` deduplicates samples that round to
+/// the same `(dy, dx)` cell.
+///
+/// The output approximately covers all cells within `radius_limit` in spiral
+/// (center-out) order. Occasional 1-cell gaps are possible at large radii
+/// when two adjacent samples round to cells that are 2 apart; the `HashSet`
+/// dedupes duplicates but does not fill these gaps. A finer step (e.g.
+/// `1/(4r)`) would close them at the cost of doubling the offset table — see
+/// follow-up work for a true gap-free traversal.
 fn spiral_offsets(radius_limit: usize) -> Vec<(isize, isize)> {
 	use std::f64::consts::PI;
 	let cap = radius_limit.saturating_mul(radius_limit).saturating_mul(4) + 1;
