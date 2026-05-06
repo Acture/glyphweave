@@ -28,6 +28,7 @@ const DEFAULT_RATIO: f32 = 0.9;
 const DEFAULT_MAX_TRIES: usize = 10_000;
 const DEFAULT_PALETTE_BASE: &str = "#3B82F6";
 const DEFAULT_PALETTE_SIZE: usize = 6;
+const DEFAULT_SHAPE_IMAGE_THRESHOLD: u8 = 127;
 
 fn main() -> ExitCode {
 	let args = CliArgs::parse();
@@ -128,8 +129,7 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 			Err(embedded_error) => {
 				let candidates = discover_system_font_candidates();
 				let (font, selected) = if args.choose_system_font {
-					let selected =
-						select_system_font_candidate(&candidates, args.choose_system_font)?;
+					let selected = select_system_font_candidate(&candidates)?;
 					let font = load_font_from_file(&selected)?;
 					(font, selected)
 				} else {
@@ -147,8 +147,13 @@ fn run(args: CliArgs) -> Result<(), GlyphWeaveError> {
 
 	let words = collect_words(&args)?;
 
+	let shape_image_threshold = args
+		.shape_image_threshold
+		.or(config.shape_image_threshold)
+		.unwrap_or(DEFAULT_SHAPE_IMAGE_THRESHOLD);
+
 	let shape = if let Some(image_path) = args.shape_image.clone() {
-		ShapeConfig::image(image_path, args.shape_image_threshold)
+		ShapeConfig::image(image_path, shape_image_threshold)
 	} else {
 		let text = if !args.shape_text_lines.is_empty() {
 			args.shape_text_lines.join("\n")
@@ -248,10 +253,7 @@ fn setup_logging(verbose: bool) {
 		.init();
 }
 
-fn select_system_font_candidate(
-	candidates: &[PathBuf],
-	interactive: bool,
-) -> Result<PathBuf, GlyphWeaveError> {
+fn select_system_font_candidate(candidates: &[PathBuf]) -> Result<PathBuf, GlyphWeaveError> {
 	if candidates.is_empty() {
 		return Err(GlyphWeaveError::FontLoad(
 			"no system fonts discovered; provide --font <path> or build with --features embedded_fonts"
@@ -259,10 +261,7 @@ fn select_system_font_candidate(
 		));
 	}
 
-	if !interactive
-		|| candidates.len() == 1
-		|| !std::io::stdin().is_terminal()
-		|| !std::io::stderr().is_terminal()
+	if candidates.len() == 1 || !std::io::stdin().is_terminal() || !std::io::stderr().is_terminal()
 	{
 		return Ok(candidates[0].clone());
 	}

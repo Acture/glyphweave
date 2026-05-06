@@ -163,7 +163,12 @@ fn preferred_system_font_paths() -> Vec<PathBuf> {
 		paths.push(PathBuf::from(&windir).join("Fonts").join("segoeui.ttf"));
 	}
 
+	if let Ok(custom_font) = std::env::var("GLYPHWEAVE_FONT") {
+		paths.insert(0, PathBuf::from(custom_font));
+	}
+
 	if let Ok(custom_font) = std::env::var("SHAPECLOUD_FONT") {
+		eprintln!("warning: SHAPECLOUD_FONT is deprecated, use GLYPHWEAVE_FONT instead");
 		paths.insert(0, PathBuf::from(custom_font));
 	}
 

@@ -181,6 +181,13 @@ of `ShapeConfig::text(...)`.
 - Embedded font: Noto Sans SC, SIL Open Font License 1.1
 - License text: `fonts/OFL-NotoSansSC.txt`
 
+## Environment variables
+
+- `GLYPHWEAVE_FONT`: path to a font file used as primary fallback. Takes
+  precedence over system font discovery.
+- `SHAPECLOUD_FONT`: deprecated alias of `GLYPHWEAVE_FONT`, will be
+  removed in a future release.
+
 ## Config
 
 Config precedence (later overrides earlier):
