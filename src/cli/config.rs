@@ -22,6 +22,7 @@ pub struct FileConfig {
 	pub palette: Option<String>,
 	pub palette_base: Option<String>,
 	pub palette_size: Option<usize>,
+	pub shape_image_threshold: Option<u8>,
 }
 
 impl FileConfig {
@@ -73,6 +74,9 @@ impl FileConfig {
 		}
 		if other.palette_size.is_some() {
 			self.palette_size = other.palette_size;
+		}
+		if other.shape_image_threshold.is_some() {
+			self.shape_image_threshold = other.shape_image_threshold;
 		}
 	}
 
@@ -186,10 +190,26 @@ canva_size = [800, 600]
 canvas_size = [1600, 900]
 algorithm = "fast-grid"
 ratio = 0.85
+shape_image_threshold = 200
 "#;
 		let cfg: FileConfig = toml::from_str(toml_text).expect("known fields should parse");
 		assert_eq!(cfg.canvas_size, Some([1600, 900]));
 		assert_eq!(cfg.algorithm.as_deref(), Some("fast-grid"));
+		assert_eq!(cfg.shape_image_threshold, Some(200));
+	}
+
+	#[test]
+	fn merge_overrides_shape_image_threshold() {
+		let mut base = FileConfig {
+			shape_image_threshold: Some(100),
+			..FileConfig::default()
+		};
+		let other = FileConfig {
+			shape_image_threshold: Some(200),
+			..FileConfig::default()
+		};
+		base.merge_from(other);
+		assert_eq!(base.shape_image_threshold, Some(200));
 	}
 
 	#[test]

@@ -87,10 +87,9 @@ pub struct CliArgs {
 
 	#[arg(
 		long = "shape-image-threshold",
-		default_value_t = 127,
-		help = "Alpha threshold (0-255) for shape image; pixels with alpha > threshold are inside"
+		help = "Alpha threshold (0-255) for shape image; pixels with alpha > threshold are inside (default 127)"
 	)]
-	pub shape_image_threshold: u8,
+	pub shape_image_threshold: Option<u8>,
 
 	#[arg(long = "algorithm", value_enum)]
 	pub algorithm: Option<CliAlgorithm>,
