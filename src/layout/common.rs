@@ -125,19 +125,31 @@ impl IncrementalAvailability {
 	/// from `mask` so subsequent queries observe the rolled-back state.
 	///
 	/// Note: if any `commit_rect` between snapshot and restore triggered an
-	/// internal rebuild (i.e. `pending_rects` was cleared), `pending_count`
-	/// could be stale. The implementation below clamps to the current length
-	/// to stay safe and simply rebuilds the integral, which is always
-	/// correct given the restored `mask`.
-	pub fn restore(&mut self, mask: &BitMask, snap: AvailabilitySnapshot) {
-		let target = snap.pending_count.min(self.pending_rects.len());
-		self.pending_rects.truncate(target);
+	/// internal rebuild (i.e. `pending_rects` was cleared), a `truncate`
+	/// based on `snap.pending_count` would silently leak the rollout-only
+	/// rects committed after the rebuild (truncate is a no-op when the
+	/// vector is already shorter than the target length). The caller has
+	/// already restored `mask` to the snapshot-time cell pattern, so the
+	/// rebuilt integral image fully encodes the rolled-back state and an
+	/// empty pending list is sufficient *and* correct.
+	pub fn restore(&mut self, mask: &BitMask, _snap: AvailabilitySnapshot) {
+		self.pending_rects.clear();
 		self.integral = build_integral(mask);
+	}
+
+	#[cfg(test)]
+	pub(crate) fn pending_count(&self) -> usize {
+		self.pending_rects.len()
 	}
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct AvailabilitySnapshot {
+	/// Retained as an opaque token for API stability and future extension
+	/// (e.g. recording additional rollback state). The current `restore`
+	/// implementation rebuilds the integral image and clears the pending
+	/// list unconditionally, so this field is intentionally unused.
+	#[allow(dead_code)]
 	pending_count: usize,
 }
 
@@ -379,4 +391,63 @@ pub fn finish_progress(pb: &Option<ProgressBar>) {
 
 pub fn intersects(a: Rect, b: Rect) -> bool {
 	a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+}
+
+#[cfg(test)]
+mod restore_leak_test {
+	use super::*;
+	use crate::layout::bitmask::BitMask;
+
+	#[test]
+	fn restore_clears_pending_rects_across_internal_rebuild() {
+		// Reproduce R1 trace: parent commits 60 rects, child rollout commits 7
+		// spanning an internal rebuild (commit_rect threshold = 64).
+		let mask = BitMask::from_fn(200, 200, |_, _| true);
+		let mut avail = IncrementalAvailability::new(&mask);
+
+		// Phase 1: parent commits 60 rects. We deliberately do not mutate the
+		// mask: the test exercises the pending_rects bookkeeping path in
+		// isolation. is_available semantics are covered elsewhere.
+		for i in 0..60 {
+			let r = Rect {
+				x: (i * 3) % 198,
+				y: (i / 60) * 3,
+				w: 2,
+				h: 2,
+			};
+			avail.commit_rect(&mask, r);
+		}
+		assert_eq!(avail.pending_count(), 60);
+
+		// Phase 2: snapshot at parent state.
+		let snap = avail.snapshot();
+
+		// Phase 3: rollout commits 7 rects. The 4th push hits the rebuild
+		// threshold (>= 64), which clears pending_rects; the trailing 3 land
+		// in a freshly-cleared list.
+		for i in 0..7 {
+			let r = Rect {
+				x: 100 + i * 3,
+				y: 50,
+				w: 2,
+				h: 2,
+			};
+			avail.commit_rect(&mask, r);
+		}
+		assert!(
+			avail.pending_count() < 60,
+			"rebuild should have fired during rollout commits"
+		);
+
+		// Phase 4: restore. Without the fix, truncate(snap.pending_count=60)
+		// is a no-op on a 3-element vec -> 3 stale rollout rects leak into
+		// the parent's pending list and silently reject overlapping cells.
+		avail.restore(&mask, snap);
+
+		assert_eq!(
+			avail.pending_count(),
+			0,
+			"restore must clear pending_rects entirely (R1 P0 regression test)"
+		);
+	}
 }
