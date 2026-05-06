@@ -73,8 +73,15 @@ svg
 ```
 
 ```bash
-glyphweave --text "AI" --word-file words.txt --algorithm spiral-greedy --rotations 0,90 --output ai.svg
+glyphweave --text "AI" --word-file words.txt --algorithm spiral-greedy \
+  --canvas-size 600,400 --max-tries 300 --output ai.svg
 ```
+
+`spiral-greedy` walks a precomputed Archimedean offset table, so each
+attempt is much more expensive than a `fast-grid` attempt. Keep the
+canvas modest, drop `--rotations` unless you really need them, and
+budget `--max-tries` in the low hundreds — see
+[docs/tuning.md](docs/tuning.md) for per-algorithm guidance.
 
 `--rotations` accepts any integer angles in `0..=360` (degrees), not only
 `0` and `90`. For richer typography, mix multiple angles:

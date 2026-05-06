@@ -34,6 +34,12 @@ Best for:
 - direct comparison with shape-aware spiral methods (e.g. ShapeWordle's
   distance-field-driven Archimedean spiral)
 
+> Each attempt walks an offset table of ~`max(canvas_w, canvas_h)²`
+> cells per font-size × rotation combination, so `--max-tries` for
+> `spiral-greedy` should stay in the low hundreds. See
+> [tuning.md](tuning.md#algorithm-specific-budgets) for the
+> per-algorithm budget table.
+
 ## 3. RandomBaseline
 
 Goal: simple baseline for comparison and regression.

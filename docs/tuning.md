@@ -63,15 +63,22 @@ starting budgets:
 
 | Algorithm | Recommended `max-tries` | Notes |
 |---|---:|---|
-| `fast-grid` | 5_000 – 10_000 | Each try is cheap; budget mostly bounds late-stage failed attempts |
-| `spiral-greedy` | 5_000 – 10_000 | Similar to fast-grid; spiral table dominates cost on far-from-center masks |
-| `random-baseline` | 5_000 – 10_000 | Bound to keep runtime predictable |
-| `mcts` | ~200 | Each try expands a search tree with rollouts; large budgets explode runtime |
-| `simulated-annealing` | ~200 | Each try is an SA step; raise temperature/cooling parameters before this |
+| `fast-grid` | 5_000 – 10_000 | Default production choice; integral image keeps inner cost O(1) |
+| `random-baseline` | 5_000 – 10_000 | Cheap per-attempt; bound to keep runtime predictable |
+| `simulated-annealing` | 1_000 – 2_000 | One sample per attempt; raise temperature/cooling parameters before increasing budget |
+| `spiral-greedy` | **200 – 500** | Each attempt walks an Archimedean offset table of ~10⁵–10⁶ cells per font-size × rotation combination — keep the budget small |
+| `mcts` | 100 – 500 | Each attempt expands a search tree with ~10⁴ rollout evaluations |
 
 When you change algorithms, recheck this table — copying `max-tries=10000`
-from `fast-grid` to `mcts` will make runs hundreds of times slower for
-little quality gain.
+from `fast-grid` to `mcts` or `spiral-greedy` will make runs hundreds of
+times slower for little quality gain.
+
+> **SpiralGreedy perf note.** SpiralGreedy walks an offset table sized
+> roughly `max(canvas_w, canvas_h)²` cells per font-size × rotation
+> combination. For a 1920×1080 canvas with ~30 distinct font sizes and
+> 2 rotations, a single attempt can sample over 200M positions. Treat
+> its `max-tries` budget as small, prefer a tighter canvas, and avoid
+> `--rotations` unless the shape really demands it.
 
 ## Reading `internal_evaluations`
 
