@@ -9,7 +9,7 @@ use std::sync::Arc;
 #[test]
 fn rejects_unsupported_rotation() {
 	let err = rotations_from_degrees(&[360]).expect_err("rotation should be rejected");
-	assert!(err.to_string().contains("unsupported rotation"));
+	assert!(err.to_string().contains("rotation must be in 0..360"));
 }
 
 #[test]
