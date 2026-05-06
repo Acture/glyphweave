@@ -1,4 +1,4 @@
-## [0.4.0] - 2026-05-05
+## [0.5.0] - 2026-05-06
 
 ### 🚀 Features
 
@@ -14,6 +14,10 @@
 - *(stats)* [**breaking**] Change CloudStats.elapsed_ms to Duration
 - *(cli)* Default --word-padding to 2 for readable output
 - *(render)* Embed seed and stats in SVG metadata for self-describing output
+- *(shape)* Use fontdue line metrics for multi-line line-height
+- *(api)* [**breaking**] Re-export GlyphWeaveError, non_exhaustive enums + output structs, drop ZERO/NINETY
+- *(api)* [**breaking**] Privatize Rotation field; new() returns Result rejecting >= 360
+- *(render)* Add SVG <title> + role=img for a11y; thread TextSizeCache
 
 ### 🐛 Bug Fixes
 
@@ -21,6 +25,9 @@
 - *(simulated-annealing)* Correct acceptance criterion semantics
 - *(rng)* Replace modulo bias with rejection sampling in random_index
 - *(render)* Use text-before-edge baseline for pixel-accurate placement
+- *(test)* Drop flaky timing assertion from image_mask large-input test
+- *(layout)* Clear pending_rects entirely in IncrementalAvailability::restore
+- *(cli)* Make --shape-image / --text / --text-lines mutually exclusive
 
 ### 💼 Other
 
@@ -29,10 +36,18 @@
 ### 🚜 Refactor
 
 - *(error)* Generalize Io and Image error wording
+- *(layout)* [**breaking**] Move BitMask to core to break mask↔layout circularity
 
 ### 📚 Documentation
 
 - *(spiral-greedy)* Clarify that this is a rectangular, not Archimedean, spiral
+- Update README and docs for v0.4.0 API surface
+- Add CONTRIBUTING.md with workflow and conventions
+- Add SECURITY.md policy
+- Add GitHub issue templates
+- Add .github/copilot-instructions.md to repo + sync stale references
+- README spiral-greedy example & tuning budget for post-Archimedean
+- *(migration)* Add v0.4 migration guide for the 5 breaking changes
 
 ### ⚡ Performance
 
@@ -43,16 +58,32 @@
 - *(mcts)* Rollout uses diff-and-rollback instead of mask clone
 - *(layout)* Inline strategy dispatch, drop Box<dyn LayoutStrategy>
 - *(spiral)* Prune offsets by canvas bounds and per-canvas cache
+- *(mask)* Use Nearest filter for image_mask resize
+- *(spiral)* Replace rectangular spiral with true Archimedean curve
+- *(layout)* Zero-alloc TextSizeCache hit path
+- *(layout)* Refill positions only on failure; spiral cache+doc fixes
 
 ### 🧪 Testing
 
 - Add hand-rolled fuzz harness for user-input parsers
 - Add property-based layout invariant tests via proptest
+- Parametrize regression snapshots across 3 seeds per algorithm
+- *(proptest)* Include MCTS and SimulatedAnnealing in property-based tests
+- Strengthen proptest, fix rotated-rect assumption, add render+error tests
 
 ### ⚙️ Miscellaneous Tasks
 
 - Switch crates.io publishing to trusted publishing
 - Also run cargo test with --features embedded_fonts
+- *(changelog)* Regenerate via git-cliff for 0.4.0
+- *(release)* Prepare v0.4.0
+- *(fuzz)* Add cargo-fuzz target for image_mask
+- Add coverage job using cargo-llvm-cov + codecov
+- Add bench-on-PR comparison workflow
+- Bench-pr label gating, dedupe ci.yml test pass, fuzz cleanups
+- [**breaking**] Rename SHAPECLOUD_FONT → GLYPHWEAVE_FONT; threshold in FileConfig; drop dead interactive arg
+- [**breaking**] Layout common cleanup batch + config IO + CloudStats Option
+
 ## [0.3.0] - 2026-03-06
 
 ### 💥 Breaking Changes

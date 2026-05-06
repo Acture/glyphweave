@@ -1,7 +1,7 @@
 [package]
 name = "glyphweave"
 autobins = false
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 authors = ["Acture <acturea@gmail.com>"]
 description = "Shape-constrained SVG word clouds, built for speed. Fast Rust CLI + library."
