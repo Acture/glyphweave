@@ -214,4 +214,100 @@ mod tests {
 		);
 		assert!(!svg.contains("rotate(90 "));
 	}
+
+	#[test]
+	fn deg45_uses_translate_then_rotate() {
+		let font = crate::font::load_default_embedded_font().expect("embedded font");
+		let canvas = CanvasConfig {
+			width: 400,
+			height: 300,
+			margin: 0,
+		};
+		let placements = vec![CloudPlacement {
+			word: "Test".into(),
+			x: 100,
+			y: 80,
+			font_size: 24,
+			color: "#000".into(),
+			rotation: Rotation::new(45).expect("valid rotation"),
+		}];
+		let metadata = RenderMetadata {
+			seed: 0,
+			placed_words: 1,
+			fill_ratio: 0.0,
+			algorithm: "test",
+		};
+		let svg = render_svg(
+			&canvas,
+			&placements,
+			&font,
+			"Test",
+			&metadata,
+			&TextSizeCache::new(),
+		);
+		assert!(
+			svg.contains("rotate(45)"),
+			"expected rotate(45) in svg, got: {svg}"
+		);
+		assert!(
+			svg.contains("translate("),
+			"expected translate(...) prefix before rotate, got: {svg}"
+		);
+		// translate must precede rotate within the transform attribute.
+		let t_idx = svg.find("translate(").expect("translate present");
+		let r_idx = svg.find("rotate(45)").expect("rotate present");
+		assert!(t_idx < r_idx, "translate must come before rotate");
+	}
+
+	#[test]
+	fn deg135_translate_uses_negative_min_x() {
+		// At 135°: cos<0, sin>0, so the rotated AABB's min_x is negative
+		// (corner (uw, 0) maps to x = uw*cos < 0). With placement at (0,0),
+		// tx = 0 - min_x is positive — verify the translate is emitted with
+		// non-negative offsets so AABB top-left lands at placement.(x, y).
+		let font = crate::font::load_default_embedded_font().expect("embedded font");
+		let canvas = CanvasConfig {
+			width: 400,
+			height: 300,
+			margin: 0,
+		};
+		let placements = vec![CloudPlacement {
+			word: "X".into(),
+			x: 0,
+			y: 0,
+			font_size: 12,
+			color: "#000".into(),
+			rotation: Rotation::new(135).expect("valid rotation"),
+		}];
+		let metadata = RenderMetadata {
+			seed: 0,
+			placed_words: 1,
+			fill_ratio: 0.0,
+			algorithm: "test",
+		};
+		let svg = render_svg(
+			&canvas,
+			&placements,
+			&font,
+			"Test",
+			&metadata,
+			&TextSizeCache::new(),
+		);
+		assert!(svg.contains("rotate(135)"), "got: {svg}");
+		// Extract the translate(tx ty) numbers and confirm both ≥ 0.
+		let t_start = svg.find("translate(").expect("translate present") + "translate(".len();
+		let t_end = svg[t_start..].find(')').expect("translate close") + t_start;
+		let inner = &svg[t_start..t_end];
+		let mut parts = inner.split_whitespace();
+		let tx: f32 = parts.next().unwrap().parse().expect("tx parse");
+		let ty: f32 = parts.next().unwrap().parse().expect("ty parse");
+		assert!(
+			tx >= 0.0,
+			"deg135 tx should be ≥ 0 (got {tx}) when placement.x=0"
+		);
+		assert!(
+			ty >= 0.0,
+			"deg135 ty should be ≥ 0 (got {ty}) when placement.y=0"
+		);
+	}
 }

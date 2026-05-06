@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a9a3061561e617b8cb5f217d0d72a3aff3b0f5c6f39ef09ccc2f22fada0146c7 # shrinks to request = CloudRequest { canvas: CanvasConfig { width: 100, height: 80, margin: 4 }, shape: ShapeConfig { source: Text { text: "AI", font_size: AutoFit } }, words: [WordEntry { text: "ua", weight: 0.5 }, WordEntry { text: "ep", weight: 1.0608466 }], style: StyleConfig { font_size_range: 8..=14, padding: 0, colors: ["#111", "#222"], rotations: [Rotation(0)] }, algorithm: SpiralGreedy, ratio_threshold: 0.3, max_try_count: 200, seed: Some(17652626414707530457), font: Font { name: Some("Noto Sans SC Regular"), settings: FontSettings { collection_index: 0, scale: 40.0, load_substitutions: true }, units_per_em: 1000.0, hash: 12912892739842391198 }, render: RenderOptions { show_progress: false, debug_mask_out: None } }
