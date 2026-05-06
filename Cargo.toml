@@ -25,10 +25,10 @@ name = "layout_bench"
 harness = false
 
 [dependencies]
-clap = { version = "4.5.40", features = ["default", "derive", "usage", "color", "help", "suggestions", "wrap_help"] }
-env_logger = { version = "0.11.8", features = ["default"] }
+clap = { version = "4.5.60", features = ["default", "derive", "usage", "color", "help", "suggestions", "wrap_help"] }
+env_logger = { version = "0.11.10", features = ["default"] }
 fontdue = { version = "0.9.3", features = ["default"] }
-image = { version = "0.25.6", features = ["default"] }
+image = { version = "0.25.10", features = ["default"] }
 indicatif = "0.17.11"
 log = { version = "0.4.27" }
 ndarray = { version = "0.16.1", features = ["default"] }
@@ -40,7 +40,7 @@ toml = "0.8.19"
 
 [dev-dependencies]
 criterion = "0.5.1"
-tempfile = "3.14.0"
+tempfile = "3.27.0"
 proptest = "1.5"
 
 [features]
