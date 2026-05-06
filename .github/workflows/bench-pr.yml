@@ -2,8 +2,10 @@ name: Bench (PR)
 
 on:
   pull_request:
+    types: [labeled, synchronize, opened, reopened]
     paths:
-      - 'src/**'
+      - 'src/layout/**'
+      - 'src/mask.rs'
       - 'benches/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -15,6 +17,7 @@ concurrency:
 jobs:
   bench:
     name: Compare bench against master
+    if: contains(github.event.pull_request.labels.*.name, 'bench')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,21 +57,31 @@ jobs:
       - name: Bench PR
         working-directory: pr
         run: |
-          # Reuse master baseline saved above by copying target/criterion
+          # Reuse master baseline saved above by copying target/criterion.
+          # Fail loud if baseline is missing rather than silently producing
+          # an uncompared bench run.
           mkdir -p target
-          cp -r ../baseline/target/criterion target/ 2>/dev/null || true
-          cargo bench --bench layout_bench --features embedded_fonts -- --baseline master 2>&1 | tee ../pr-bench.txt
+          cp -r ../baseline/target/criterion target/criterion
+          cargo bench --bench layout_bench --features embedded_fonts -- --baseline-lenient master 2>&1 | tee ../pr-bench.txt
 
       - name: Format comparison summary
         id: summary
         run: |
+          set -o pipefail
+          # `grep | head` exits 0 even when grep matched nothing, so the
+          # `||` fallback never fires. Capture filtered output and only
+          # fall back to a tail dump when the filter produced no lines.
+          matched=$(grep -E 'time:|change:|Performance has' pr-bench.txt | head -80 || true)
+          if [ -z "$matched" ]; then
+            matched=$(tail -80 pr-bench.txt)
+          fi
           {
             echo '## 📊 Bench comparison (master baseline → PR)'
             echo
             echo '<details><summary>Full output (PR vs master)</summary>'
             echo
             echo '```'
-            grep -E 'time:|change:|Performance has' pr-bench.txt | head -80 || tail -80 pr-bench.txt
+            echo "$matched"
             echo '```'
             echo
             echo '</details>'

@@ -2,6 +2,7 @@
 use glyphweave::*;
 use libfuzzer_sys::fuzz_target;
 use std::sync::Arc;
+use tempfile::NamedTempFile;
 
 fn font() -> Arc<fontdue::Font> {
 	static FONT: std::sync::OnceLock<Arc<fontdue::Font>> = std::sync::OnceLock::new();
@@ -19,12 +20,10 @@ fuzz_target!(|data: &[u8]| {
 	if data.len() < 64 {
 		return;
 	}
-	let tmp = std::env::temp_dir().join(format!(
-		"gw_fuzz_{}_{}.png",
-		std::process::id(),
-		data.len()
-	));
-	if std::fs::write(&tmp, data).is_err() {
+	let Ok(tmp) = NamedTempFile::new() else {
+		return;
+	};
+	if std::fs::write(tmp.path(), data).is_err() {
 		return;
 	}
 	let req = CloudRequest {
@@ -33,7 +32,7 @@ fuzz_target!(|data: &[u8]| {
 			height: 100,
 			margin: 0,
 		},
-		shape: ShapeConfig::image(tmp.clone(), 127),
+		shape: ShapeConfig::image(tmp.path().to_path_buf(), 127),
 		words: vec![WordEntry::new("ab", 1.0)],
 		style: StyleConfig::default(),
 		algorithm: AlgorithmKind::FastGrid,
@@ -47,5 +46,4 @@ fuzz_target!(|data: &[u8]| {
 		},
 	};
 	let _ = generate(req);
-	let _ = std::fs::remove_file(&tmp);
 });
