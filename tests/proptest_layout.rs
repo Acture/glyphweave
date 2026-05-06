@@ -33,7 +33,7 @@ fn arb_request(font: Arc<fontdue::Font>) -> impl Strategy<Value = CloudRequest> 
 	)
 		.prop_map(move |(w, h, words, algo, seed)| {
 			let max_tries = match algo {
-				AlgorithmKind::Mcts => 30,
+				AlgorithmKind::Mcts => 200,
 				AlgorithmKind::SimulatedAnnealing => 100,
 				_ => 200,
 			};
@@ -87,5 +87,30 @@ proptest! {
 	) {
 		let result = generate(request.clone()).expect("generation should succeed");
 		assert_placement_constraints(&request, &result);
+
+		// MCTS and SpiralGreedy must actually place at least one word, given
+		// a reasonably sized canvas. Without this, the assertions above pass
+		// trivially when these algorithms produce empty placements (regression
+		// guard for A10 P1). Small canvases (the lower end of arb_request)
+		// can legitimately fit zero words because the "AI" shape mask shrinks
+		// proportionally, so we gate this assertion on canvas ≥ 200×120.
+		// FastGrid/RandomBaseline are not asserted because they already
+		// reliably place multiple words and would only add flakiness.
+		let big_enough = request.canvas.width >= 200 && request.canvas.height >= 120;
+		if big_enough
+			&& matches!(
+				request.algorithm,
+				AlgorithmKind::Mcts | AlgorithmKind::SpiralGreedy
+			) {
+			prop_assert!(
+				!result.placements.is_empty(),
+				"{:?} produced no placements (seed={:?}, words={}, canvas={}x{})",
+				request.algorithm,
+				request.seed,
+				request.words.len(),
+				request.canvas.width,
+				request.canvas.height
+			);
+		}
 	}
 }
