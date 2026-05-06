@@ -54,6 +54,7 @@ pub fn calculate_auto_font_size(canvas: &CanvasConfig, text: &str, font: &Font) 
 
 	while low <= high {
 		let mid = low + (high - low) / 2;
+		debug_assert!(mid >= 1, "auto-fit binary search produced mid < 1");
 		let fits = if lines.len() == 1 {
 			let (w, h) = calculate_text_size(lines[0], font, mid, 0, Rotation::Deg0);
 			w <= available_width && h <= available_height
@@ -75,9 +76,6 @@ pub fn calculate_auto_font_size(canvas: &CanvasConfig, text: &str, font: &Font) 
 			best = mid;
 			low = mid + 1;
 		} else {
-			if mid == 0 {
-				break;
-			}
 			high = mid.saturating_sub(1);
 		}
 	}

@@ -7,6 +7,21 @@ use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::Array2;
 use rand::RngCore;
 
+// # Per-strategy tuning constants
+//
+// Each layout strategy maintains its own tuning constants. Values
+// differ intentionally based on internal cost characteristics; they
+// are documented here for cross-comparison.
+//
+// | Constant                  | fast_grid | mcts | random_baseline | sa  | spiral_greedy |
+// |---------------------------|-----------|------|-----------------|-----|---------------|
+// | POOL_REFILL_THRESHOLD     | 512       | 256  | 256             | 256 | n/a           |
+// | CANDIDATE_TRIALS          | 48        | 64   | 24              | 48  | n/a           |
+// | INTEGRAL_REBUILD_INTERVAL | 64        | n/a  | n/a             | n/a | n/a           |
+//
+// To re-tune all strategies coherently, update each module's const
+// and the snapshot fixtures in `tests/golden/`.
+
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
 	pub x: usize,
@@ -224,7 +239,7 @@ pub fn pick_weighted_word<'a>(
 
 	for word in words {
 		cursor -= word.weight.max(0.0) as f64;
-		if cursor <= 0.0 {
+		if cursor < 0.0 {
 			return Some(word);
 		}
 	}
@@ -233,6 +248,10 @@ pub fn pick_weighted_word<'a>(
 }
 
 pub fn pick_color<'a>(colors: &'a [String], rng: &mut dyn RngCore) -> &'a str {
+	debug_assert!(!colors.is_empty(), "pick_color called with empty palette");
+	if colors.is_empty() {
+		return "";
+	}
 	let idx = random_index(rng, colors.len());
 	colors[idx].as_str()
 }

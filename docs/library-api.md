@@ -7,8 +7,10 @@
 - `AlgorithmKind`: `FastGrid` / `SpiralGreedy` / `RandomBaseline` / `Mcts` / `SimulatedAnnealing`
 - `CanvasConfig`, `ShapeConfig`, `StyleConfig`, `WordEntry`, `RenderOptions`
 - `ShapeSource`: enum with `Text { text, font_size }` and `Image { path, threshold }` variants. Construct via `ShapeConfig::text(...)` or `ShapeConfig::image(...)` helpers.
+- `FontSizeSpec`: enum with `Fixed(usize)` and `AutoFit` variants. Used by `ShapeSource::Text`; `AutoFit` triggers binary-search sizing in `mask::calculate_auto_font_size`.
+- `CloudPlacement`: per-word placement record (text, color, position, font size, rotation) emitted in `CloudResult::placements` and used by `render::render_svg`.
 - `Rotation`: newtype `pub struct Rotation(pub u16)`. Accepts any integer degrees in `0..=360`; previously restricted to `0` / `90`. Constants `Rotation::Deg0` / `Rotation::Deg90` remain available.
-- `CloudStats`: includes `elapsed: Duration` (replaces the old `elapsed_ms: u128`) and `internal_evaluations: usize` for the true number of placement-attempt evaluations performed by the chosen algorithm.
+- `CloudStats`: includes `elapsed: Duration` (replaces the old `elapsed_ms: u128`) and `internal_evaluations: usize` for the true number of placement-attempt evaluations performed by the chosen algorithm. `shape_font_size` is `Option<usize>` — `None` for image-mask shapes.
 - `RenderMetadata`: bundle handed to `render::render_svg` carrying seed, algorithm, and stats; embedded into the SVG output as a `<metadata>` element.
 - `GlyphWeaveError`: the `Io` variant now carries `{ path, source }` for richer error context.
 

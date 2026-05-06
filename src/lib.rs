@@ -44,11 +44,11 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 				}
 			};
 			let mask = build_shape_mask(&request.canvas, text, request.font.as_ref(), resolved);
-			(mask, resolved)
+			(mask, Some(resolved))
 		}
 		ShapeSource::Image { path, threshold } => {
 			let mask = build_image_mask(&request.canvas, path, *threshold)?;
-			(mask, 0)
+			(mask, None)
 		}
 	};
 

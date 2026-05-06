@@ -323,7 +323,7 @@ pub struct CloudPlacement {
 #[non_exhaustive]
 pub struct CloudStats {
 	pub seed: u64,
-	pub shape_font_size: usize,
+	pub shape_font_size: Option<usize>,
 	pub total_usable_area: usize,
 	pub used_area: usize,
 	pub fill_ratio: f32,

@@ -45,61 +45,72 @@ pub fn generate_palette(
 			],
 			size,
 		)),
-		_ => {
-			let (r, g, b) = parse_hex_color(base_hex)?;
-			let (h, s, l) = rgb_to_hsl(r, g, b);
-			let mut out = Vec::with_capacity(size);
-
-			for i in 0..size {
-				let t = if size == 1 {
-					0.5
-				} else {
-					i as f32 / (size - 1) as f32
-				};
-
-				let (hh, ss, ll) = match kind {
-					PaletteKind::Auto => {
-						let hues = [h - 30.0, h, h + 30.0, h + 160.0, h + 200.0, h + 240.0];
-						let hue = hues[i % hues.len()];
-						let light = 0.35 + 0.35 * t;
-						(hue, (s * 0.85).clamp(0.35, 0.85), light)
-					}
-					PaletteKind::Complementary => {
-						let hue = if i % 2 == 0 { h } else { h + 180.0 };
-						let light = if i % 2 == 0 {
-							0.35 + 0.25 * t
-						} else {
-							0.45 + 0.25 * t
-						};
-						(hue, (s * 0.9).clamp(0.4, 0.9), light)
-					}
-					PaletteKind::Triadic => {
-						let hue = h + 120.0 * (i % 3) as f32;
-						let light = 0.33 + 0.35 * t;
-						(hue, (s * 0.88).clamp(0.4, 0.9), light)
-					}
-					PaletteKind::Analogous => {
-						let spread = 60.0;
-						let hue = h + spread * (t - 0.5);
-						(
-							hue,
-							(s * 0.85).clamp(0.35, 0.85),
-							(l * 0.65 + 0.15 + 0.3 * t).clamp(0.2, 0.82),
-						)
-					}
-					PaletteKind::Monochrome => (h, (s * 0.75).clamp(0.15, 0.75), 0.2 + 0.6 * t),
-					PaletteKind::Pastel | PaletteKind::Earth | PaletteKind::Vibrant => {
-						unreachable!()
-					}
-				};
-
-				let (rr, gg, bb) = hsl_to_rgb(hh, ss, ll);
-				out.push(format!("#{:02X}{:02X}{:02X}", rr, gg, bb));
-			}
-
-			Ok(out)
-		}
+		PaletteKind::Auto
+		| PaletteKind::Complementary
+		| PaletteKind::Triadic
+		| PaletteKind::Analogous
+		| PaletteKind::Monochrome => generate_hsl_palette(kind, base_hex, size),
 	}
+}
+
+fn generate_hsl_palette(
+	kind: PaletteKind,
+	base_hex: &str,
+	size: usize,
+) -> Result<Vec<String>, GlyphWeaveError> {
+	let (r, g, b) = parse_hex_color(base_hex)?;
+	let (h, s, l) = rgb_to_hsl(r, g, b);
+	let mut out = Vec::with_capacity(size);
+
+	for i in 0..size {
+		let t = if size == 1 {
+			0.5
+		} else {
+			i as f32 / (size - 1) as f32
+		};
+
+		let (hh, ss, ll) = match kind {
+			PaletteKind::Auto => {
+				let hues = [h - 30.0, h, h + 30.0, h + 160.0, h + 200.0, h + 240.0];
+				let hue = hues[i % hues.len()];
+				let light = 0.35 + 0.35 * t;
+				(hue, (s * 0.85).clamp(0.35, 0.85), light)
+			}
+			PaletteKind::Complementary => {
+				let hue = if i % 2 == 0 { h } else { h + 180.0 };
+				let light = if i % 2 == 0 {
+					0.35 + 0.25 * t
+				} else {
+					0.45 + 0.25 * t
+				};
+				(hue, (s * 0.9).clamp(0.4, 0.9), light)
+			}
+			PaletteKind::Triadic => {
+				let hue = h + 120.0 * (i % 3) as f32;
+				let light = 0.33 + 0.35 * t;
+				(hue, (s * 0.88).clamp(0.4, 0.9), light)
+			}
+			PaletteKind::Analogous => {
+				let spread = 60.0;
+				let hue = h + spread * (t - 0.5);
+				(
+					hue,
+					(s * 0.85).clamp(0.35, 0.85),
+					(l * 0.65 + 0.15 + 0.3 * t).clamp(0.2, 0.82),
+				)
+			}
+			PaletteKind::Monochrome => (h, (s * 0.75).clamp(0.15, 0.75), 0.2 + 0.6 * t),
+			PaletteKind::Pastel | PaletteKind::Earth | PaletteKind::Vibrant => {
+				debug_assert!(false, "preset palettes handled by generate_palette");
+				(h, s, l)
+			}
+		};
+
+		let (rr, gg, bb) = hsl_to_rgb(hh, ss, ll);
+		out.push(format!("#{:02X}{:02X}{:02X}", rr, gg, bb));
+	}
+
+	Ok(out)
 }
 
 fn repeat_palette(colors: &[&str], size: usize) -> Vec<String> {
