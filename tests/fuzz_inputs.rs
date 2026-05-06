@@ -65,7 +65,7 @@ fn parse_word_file_does_not_panic_on_random_input() {
 
 		match output.status.code() {
 			Some(code) => assert!(
-				code <= 5,
+				matches!(code, 0 | 2 | 3 | 4 | 5),
 				"unexpected CLI exit code {code} for seed {seed}; stderr={}",
 				String::from_utf8_lossy(&output.stderr)
 			),

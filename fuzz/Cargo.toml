@@ -10,6 +10,7 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 fontdue = "0.9"
+tempfile = "3"
 
 [dependencies.glyphweave]
 path = ".."
