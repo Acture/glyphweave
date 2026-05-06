@@ -208,6 +208,7 @@ rotations = [0, 90]
 - [Library API](docs/library-api.md)
 - [Algorithms](docs/algorithms.md)
 - [Tuning](docs/tuning.md)
+- [Migration v0.4](docs/migration-v0.4.md)
 - [Migration v0.2](docs/migration-v0.2.md)
 
 ## For Maintainers
