@@ -81,7 +81,7 @@ impl WordEntry {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Rotation(pub u16);
+pub struct Rotation(u16);
 
 #[allow(non_upper_case_globals)]
 impl Rotation {
@@ -90,18 +90,36 @@ impl Rotation {
 	pub const ZERO: Self = Self(0);
 	pub const NINETY: Self = Self(90);
 
+	/// Construct from degrees in `0..360` (exclusive upper bound). Returns
+	/// [`GlyphWeaveError::InvalidConfig`] for out-of-range input.
+	pub fn new(degrees: u16) -> Result<Self, GlyphWeaveError> {
+		if degrees >= 360 {
+			return Err(GlyphWeaveError::InvalidConfig(format!(
+				"rotation must be in 0..360 degrees, got {degrees}"
+			)));
+		}
+		Ok(Self(degrees))
+	}
+
+	/// Construct from degrees, normalizing to `0..360` via modulo. Use
+	/// when input is known to be sanitized (e.g. inside library code
+	/// that has already validated bounds).
+	pub fn from_degrees_normalized(degrees: u16) -> Self {
+		Self(degrees % 360)
+	}
+
 	pub fn degrees(self) -> u16 {
-		self.0 % 360
+		self.0
 	}
 
 	pub fn radians(self) -> f32 {
-		(self.degrees() as f32).to_radians()
+		(self.0 as f32).to_radians()
 	}
 }
 
 impl PartialEq for Rotation {
 	fn eq(&self, other: &Self) -> bool {
-		self.degrees() == other.degrees()
+		self.0 == other.0
 	}
 }
 
@@ -109,13 +127,13 @@ impl Eq for Rotation {}
 
 impl std::hash::Hash for Rotation {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-		self.degrees().hash(state);
+		self.0.hash(state);
 	}
 }
 
 impl serde::Serialize for Rotation {
 	fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-		s.serialize_u16(self.degrees())
+		s.serialize_u16(self.0)
 	}
 }
 
