@@ -23,12 +23,14 @@ impl Default for CanvasConfig {
 }
 
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum FontSizeSpec {
 	Fixed(usize),
 	AutoFit,
 }
 
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum ShapeSource {
 	Text {
 		text: String,
@@ -87,8 +89,6 @@ pub struct Rotation(pub u16);
 impl Rotation {
 	pub const Deg0: Self = Self(0);
 	pub const Deg90: Self = Self(90);
-	pub const ZERO: Self = Self(0);
-	pub const NINETY: Self = Self(90);
 
 	pub fn degrees(self) -> u16 {
 		self.0 % 360
@@ -139,6 +139,7 @@ impl Default for StyleConfig {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[non_exhaustive]
 pub enum AlgorithmKind {
 	RandomBaseline,
 	#[default]
@@ -149,6 +150,13 @@ pub enum AlgorithmKind {
 }
 
 impl AlgorithmKind {
+	/// Stable kebab-case identifier (e.g. `"fast-grid"`, `"spiral-greedy"`,
+	/// `"mcts"`, `"simulated-annealing"`, `"random-baseline"`).
+	///
+	/// **API contract**: these strings are part of GlyphWeave's stable
+	/// public API. They appear in CLI `--algorithm` parsing, in
+	/// `RenderMetadata.algorithm`, and in SVG output (`<glyphweave
+	/// algorithm="...">`). Renaming them is a breaking change.
 	pub fn as_str(&self) -> &'static str {
 		match self {
 			AlgorithmKind::RandomBaseline => "random-baseline",
@@ -164,11 +172,11 @@ impl AlgorithmKind {
 /// describe themselves (seed, algorithm, fill ratio) without external
 /// context.
 #[derive(Debug, Clone)]
-pub struct RenderMetadata<'a> {
+pub struct RenderMetadata {
 	pub seed: u64,
 	pub placed_words: usize,
 	pub fill_ratio: f32,
-	pub algorithm: &'a str,
+	pub algorithm: &'static str,
 }
 
 #[derive(Debug, Clone)]
@@ -283,6 +291,7 @@ impl CloudRequest {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[non_exhaustive]
 pub struct CloudPlacement {
 	pub word: String,
 	pub x: usize,
@@ -293,6 +302,7 @@ pub struct CloudPlacement {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[non_exhaustive]
 pub struct CloudStats {
 	pub seed: u64,
 	pub shape_font_size: usize,
@@ -314,6 +324,7 @@ fn serialize_duration_as_millis<S: serde::Serializer>(
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[non_exhaustive]
 pub struct CloudResult {
 	pub svg: String,
 	pub placements: Vec<CloudPlacement>,

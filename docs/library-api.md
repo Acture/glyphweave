@@ -7,9 +7,9 @@
 - `AlgorithmKind`: `FastGrid` / `SpiralGreedy` / `RandomBaseline` / `Mcts` / `SimulatedAnnealing`
 - `CanvasConfig`, `ShapeConfig`, `StyleConfig`, `WordEntry`, `RenderOptions`
 - `ShapeSource`: enum with `Text { text, font_size }` and `Image { path, threshold }` variants. Construct via `ShapeConfig::text(...)` or `ShapeConfig::image(...)` helpers.
-- `Rotation`: newtype `pub struct Rotation(pub u16)`. Accepts any integer degrees in `0..=360`; previously restricted to `0` / `90`. Constants `Rotation::ZERO` / `Rotation::NINETY` remain available.
+- `Rotation`: newtype `pub struct Rotation(pub u16)`. Accepts any integer degrees in `0..=360`; previously restricted to `0` / `90`. Constants `Rotation::Deg0` / `Rotation::Deg90` remain available.
 - `CloudStats`: includes `elapsed: Duration` (replaces the old `elapsed_ms: u128`) and `internal_evaluations: usize` for the true number of placement-attempt evaluations performed by the chosen algorithm.
-- `RenderMetadata<'a>`: bundle handed to `render::render_svg` carrying seed, algorithm, and stats; embedded into the SVG output as a `<metadata>` element.
+- `RenderMetadata`: bundle handed to `render::render_svg` carrying seed, algorithm, and stats; embedded into the SVG output as a `<metadata>` element.
 - `GlyphWeaveError`: the `Io` variant now carries `{ path, source }` for richer error context.
 
 ## Entry Point

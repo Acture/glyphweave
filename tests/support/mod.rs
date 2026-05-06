@@ -86,6 +86,7 @@ pub fn assert_placement_constraints(request: &CloudRequest, result: &CloudResult
 				FontSizeSpec::AutoFit => {
 					calculate_auto_font_size(&request.canvas, text, request.font.as_ref())
 				}
+				_ => panic!("unsupported font size spec variant in tests"),
 			};
 			build_shape_mask(&request.canvas, text, request.font.as_ref(), resolved)
 		}
@@ -93,6 +94,7 @@ pub fn assert_placement_constraints(request: &CloudRequest, result: &CloudResult
 			build_image_mask(&request.canvas, path, *threshold)
 				.expect("image mask should build for assertions")
 		}
+		_ => panic!("unsupported shape source variant in tests"),
 	};
 
 	for (i, placement) in result.placements.iter().enumerate() {

@@ -10,7 +10,7 @@ pub fn render_svg(
 	placements: &[CloudPlacement],
 	font: &Font,
 	font_family: &str,
-	metadata: &RenderMetadata<'_>,
+	metadata: &RenderMetadata,
 ) -> String {
 	let mut doc = Document::new()
 		.set("width", canvas.width)
