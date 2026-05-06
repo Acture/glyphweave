@@ -1,23 +1,46 @@
 use crate::core::model::{CanvasConfig, CloudPlacement, RenderMetadata, Rotation};
-use crate::mask::calculate_text_size;
+use crate::layout::TextSizeCache;
 use fontdue::Font;
 use svg::Document;
 use svg::Node;
-use svg::node::element::{Description, Element, Text};
+use svg::node::element::{Description, Element, Text, Title};
 
+/// Render placements to SVG.
+///
+/// **Baseline note**: uses `dominant-baseline="text-before-edge"` which
+/// aligns each glyph to the SVG renderer's em-box top. Different
+/// renderers (Chrome / Firefox / Safari / Inkscape / librsvg) use
+/// slightly different ascent metrics, so the rendered glyph footprint
+/// can drift 1–2 px from the mask reservation rect (which is computed
+/// from fontdue ink height). For pixel-precise alignment across
+/// renderers, set [`StyleConfig::padding`](crate::StyleConfig) `> 0` to
+/// add slack between the mask reservation and the rendered ink.
 pub fn render_svg(
 	canvas: &CanvasConfig,
 	placements: &[CloudPlacement],
 	font: &Font,
 	font_family: &str,
 	metadata: &RenderMetadata,
+	cache: &TextSizeCache,
 ) -> String {
 	let mut doc = Document::new()
 		.set("width", canvas.width)
 		.set("height", canvas.height)
 		.set("viewBox", (0, 0, canvas.width, canvas.height))
 		.set("xmlns", "http://www.w3.org/2000/svg")
-		.set("xmlns:xlink", "http://www.w3.org/1999/xlink");
+		.set("xmlns:xlink", "http://www.w3.org/1999/xlink")
+		.set("role", "img");
+
+	let algorithm_label = match metadata.algorithm {
+		"fast-grid" => "FastGrid",
+		"spiral-greedy" => "SpiralGreedy",
+		"mcts" => "MCTS",
+		"simulated-annealing" => "SimulatedAnnealing",
+		"random-baseline" => "RandomBaseline",
+		other => other,
+	};
+	let title = Title::new(format!("GlyphWeave word cloud — {algorithm_label}"));
+	doc = doc.add(title);
 
 	let desc = Description::new().add(svg::node::Text::new(format!(
 		"GlyphWeave word cloud — seed {} — algorithm {} — {} words — {:.1}% fill",
@@ -65,7 +88,7 @@ pub fn render_svg(
 			// the origin yields a new AABB; we translate so that AABB's
 			// top-left aligns with placement.(x, y) — the mask reservation
 			// produced by calculate_text_size with the same rotation.
-			let (unrotated_w, unrotated_h) = calculate_text_size(
+			let (unrotated_w, unrotated_h) = cache.size_of(
 				&placement.word,
 				font,
 				placement.font_size,
@@ -129,7 +152,14 @@ mod baseline_tests {
 			fill_ratio: 0.0,
 			algorithm: "test",
 		};
-		let svg = render_svg(&canvas, &placements, &font, "Test Font", &metadata);
+		let svg = render_svg(
+			&canvas,
+			&placements,
+			&font,
+			"Test Font",
+			&metadata,
+			&TextSizeCache::new(),
+		);
 		assert!(
 			svg.contains("text-before-edge"),
 			"must use text-before-edge baseline"
@@ -143,6 +173,7 @@ mod baseline_tests {
 mod tests {
 	use super::*;
 	use crate::core::model::CloudPlacement;
+	use crate::mask::calculate_text_size;
 
 	#[test]
 	fn deg90_uses_translate_then_rotate() {
@@ -168,7 +199,14 @@ mod tests {
 			fill_ratio: 0.0,
 			algorithm: "test",
 		};
-		let svg = render_svg(&canvas, &placements, &font, "Test", &metadata);
+		let svg = render_svg(
+			&canvas,
+			&placements,
+			&font,
+			"Test",
+			&metadata,
+			&TextSizeCache::new(),
+		);
 		let expected = format!("translate({} {}) rotate(90)", 50 + h, 60);
 		assert!(
 			svg.contains(&expected),
