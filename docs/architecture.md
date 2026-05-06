@@ -5,9 +5,10 @@
 GlyphWeave v0.2 splits the project into a reusable library core and a thin CLI wrapper.
 
 - `src/lib.rs`: public API + generation orchestration
-- `src/core/`: shared models and error types
-- `src/mask.rs`: shape rasterization and mask utilities
-- `src/layout/`: pluggable layout strategies
+- `src/core/`: shared models, error types, `BitMask`
+- `src/mask.rs`: shape rasterization (uses `core::bitmask::BitMask`)
+- `src/layout/`: pluggable layout strategies (depend on mask, not the
+  other way around)
 - `src/render.rs`: SVG assembly
 - `src/bin/glyphweave.rs`: CLI entrypoint only
 

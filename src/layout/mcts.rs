@@ -1,5 +1,5 @@
+use crate::core::bitmask::BitMask;
 use crate::core::error::GlyphWeaveError;
-use crate::layout::BitMask;
 use crate::layout::common::{
 	IncrementalAvailability, PlacementCandidate, Rect, apply_candidate, available_positions,
 	candidate_quality, create_progress_bar, finish_progress, occupy_area, pick_color,

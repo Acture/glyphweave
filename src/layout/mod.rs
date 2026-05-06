@@ -1,4 +1,3 @@
-mod bitmask;
 mod common;
 mod fast_grid;
 mod mcts;
@@ -7,12 +6,12 @@ mod simulated_annealing;
 mod spiral_greedy;
 mod text_cache;
 
+use crate::core::bitmask::BitMask;
 use crate::core::error::GlyphWeaveError;
 use crate::core::model::{CloudPlacement, StyleConfig, WordEntry};
 use fontdue::Font;
 use rand::RngCore;
 
-pub use bitmask::BitMask;
 pub use fast_grid::FastGridStrategy;
 pub use mcts::MctsStrategy;
 pub use random_baseline::RandomBaselineStrategy;

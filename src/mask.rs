@@ -1,6 +1,6 @@
+use crate::core::bitmask::BitMask;
 use crate::core::error::GlyphWeaveError;
 use crate::core::model::{CanvasConfig, Rotation};
-use crate::layout::BitMask;
 use fontdue::Font;
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
