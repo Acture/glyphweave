@@ -65,6 +65,7 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 	let used_seed = request.seed.unwrap_or_else(rand::random::<u64>);
 	let mut rng = StdRng::seed_from_u64(used_seed);
 
+	let text_size_cache = TextSizeCache::new();
 	let layout_req = LayoutRequest {
 		mask: &shape_mask,
 		words: &request.words,
@@ -73,7 +74,7 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 		ratio_threshold: request.ratio_threshold,
 		max_try_count: request.max_try_count,
 		show_progress: request.render.show_progress,
-		text_size_cache: TextSizeCache::new(),
+		text_size_cache,
 	};
 
 	let layout_result = match request.algorithm {
@@ -102,6 +103,7 @@ pub fn generate(request: CloudRequest) -> Result<CloudResult, GlyphWeaveError> {
 		request.font.as_ref(),
 		&font::font_family_name(request.font.as_ref()),
 		&metadata,
+		&layout_req.text_size_cache,
 	);
 
 	Ok(CloudResult {
