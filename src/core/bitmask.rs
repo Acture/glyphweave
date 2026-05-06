@@ -54,6 +54,18 @@ impl BitMask {
 
 	#[inline]
 	pub fn set(&mut self, y: usize, x: usize, value: bool) {
+		debug_assert!(
+			y < self.height,
+			"y={} out of bounds (height={})",
+			y,
+			self.height
+		);
+		debug_assert!(
+			x < self.width,
+			"x={} out of bounds (width={})",
+			x,
+			self.width
+		);
 		if y >= self.height || x >= self.width {
 			return;
 		}

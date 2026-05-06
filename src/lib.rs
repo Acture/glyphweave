@@ -6,6 +6,7 @@ pub mod render;
 
 mod embedded_fonts;
 
+pub use crate::core::bitmask::BitMask;
 pub use crate::core::error::GlyphWeaveError;
 
 use crate::layout::{

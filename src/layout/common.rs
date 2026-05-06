@@ -1,6 +1,6 @@
+use crate::core::bitmask::BitMask;
 use crate::core::model::{CloudPlacement, Rotation, StyleConfig, WordEntry};
 use crate::layout::LayoutRequest;
-use crate::layout::bitmask::BitMask;
 use crate::layout::text_cache::TextSizeCache;
 use fontdue::Font;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -396,7 +396,6 @@ pub fn intersects(a: Rect, b: Rect) -> bool {
 #[cfg(test)]
 mod restore_leak_test {
 	use super::*;
-	use crate::layout::bitmask::BitMask;
 
 	#[test]
 	fn restore_clears_pending_rects_across_internal_rebuild() {
