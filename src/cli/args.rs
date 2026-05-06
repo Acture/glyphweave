@@ -62,13 +62,15 @@ pub struct CliArgs {
 	#[arg(
 		short = 't',
 		long = "text",
-		required_unless_present_any = ["shape_text_lines", "shape_image"]
+		required_unless_present_any = ["shape_text_lines", "shape_image"],
+		conflicts_with = "shape_text_lines",
 	)]
 	pub shape_text: Option<String>,
 
 	#[arg(
 		long = "text-lines",
 		value_delimiter = ',',
+		conflicts_with = "shape_image",
 		help = "Multi-line shape text (comma-separated lines, joined with newlines)"
 	)]
 	pub shape_text_lines: Vec<String>,
@@ -78,7 +80,7 @@ pub struct CliArgs {
 
 	#[arg(
 		long = "shape-image",
-		conflicts_with = "shape_text",
+		conflicts_with_all = ["shape_text", "shape_text_lines"],
 		help = "Path to a PNG mask image used as the shape (alpha channel)"
 	)]
 	pub shape_image: Option<PathBuf>,
