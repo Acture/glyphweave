@@ -6,7 +6,8 @@ pub mod render;
 
 mod embedded_fonts;
 
-use crate::core::error::GlyphWeaveError;
+pub use crate::core::error::GlyphWeaveError;
+
 use crate::layout::{
 	FastGridStrategy, LayoutRequest, LayoutStrategy, MctsStrategy, RandomBaselineStrategy,
 	SimulatedAnnealingStrategy, SpiralGreedyStrategy, TextSizeCache,

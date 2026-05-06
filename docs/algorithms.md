@@ -96,5 +96,5 @@ Best for:
 
 Rotations accept any integer angles in `0..=360` degrees (CLI:
 `--rotations 0,30,60,90`; library: `Rotation(u16)`). The earlier `0` /
-`90`-only restriction has been lifted; `Rotation::ZERO` and
-`Rotation::NINETY` constants remain for the common case.
+`90`-only restriction has been lifted; `Rotation::Deg0` and
+`Rotation::Deg90` constants remain for the common case.

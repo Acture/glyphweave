@@ -222,6 +222,7 @@ fn map_error_to_exit_code(error: &GlyphWeaveError) -> u8 {
 		GlyphWeaveError::FontLoad(_) => 3,
 		GlyphWeaveError::Io { .. } | GlyphWeaveError::Image { .. } => 4,
 		GlyphWeaveError::Generation(_) => 5,
+		_ => 1,
 	}
 }
 

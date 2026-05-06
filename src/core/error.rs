@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum GlyphWeaveError {
 	#[error("invalid configuration: {0}")]
 	InvalidConfig(String),
