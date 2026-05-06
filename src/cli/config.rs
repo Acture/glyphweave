@@ -134,8 +134,9 @@ pub fn load_merged_config(explicit_path: Option<&Path>) -> Result<FileConfig, Gl
 }
 
 fn load_config_file(path: &Path) -> Result<FileConfig, GlyphWeaveError> {
-	let content = std::fs::read_to_string(path).map_err(|err| {
-		GlyphWeaveError::InvalidConfig(format!("failed to read config '{}': {err}", path.display()))
+	let content = std::fs::read_to_string(path).map_err(|source| GlyphWeaveError::Io {
+		path: path.to_path_buf(),
+		source,
 	})?;
 
 	toml::from_str::<FileConfig>(&content).map_err(|err| {
