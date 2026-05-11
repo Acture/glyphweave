@@ -65,7 +65,7 @@ jobs:
           cargo llvm-cov --features embedded_fonts --workspace --lcov --output-path lcov.info -- --skip 'fuzz_inputs::'
 
       - name: Upload to codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: ./lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
