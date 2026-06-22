@@ -24,14 +24,14 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout master baseline
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master
           path: baseline
           lfs: true
 
       - name: Checkout PR head
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: pr
           lfs: true
