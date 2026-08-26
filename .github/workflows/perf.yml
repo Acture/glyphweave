@@ -27,4 +27,4 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run perf regression tests
-        run: cargo test --tests -- --ignored
+        run: cargo test --release --tests -- --ignored
